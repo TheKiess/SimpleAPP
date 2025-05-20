@@ -2,6 +2,10 @@ from tkinter import *
 from tkinter import ttk
 from tkcalendar import Calendar
 from PIL import Image, ImageTk
+import matplotlib
+matplotlib.use('TkAgg')
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
 import datetime
 
 ################# CORES!!! ###############
@@ -51,7 +55,7 @@ def janelaPrincipal():
 
     ttk.Button(topoBotoes, text="GESTÃO").grid(row=0, column=0, padx=5)
     ttk.Button(topoBotoes, text="PESSOAS", command=janelaPessoas).grid(row=0, column=1, padx=5)
-    ttk.Button(topoBotoes, text="VALORES").grid(row=0, column=2, padx=5)
+    ttk.Button(topoBotoes, text="VALORES", command=janelaValor).grid(row=0, column=2, padx=5)
 
     # DIV MEIO
     divMeio = Frame(janela, width=900, height=460, background=co8, relief="flat")
@@ -136,12 +140,30 @@ def janelaPrincipal():
 
 
 def janelaPessoas():
+    
+    def formatarCelular(event):
+        widget = event.widget
+        texto = widget.get()
+        numeros = ''.join(filter(str.isdigit, texto))[:11]
+        formatado = ""
+        if len(numeros) >= 1:
+            formatado = f"({numeros[:2]}"
+        if len(numeros) >= 3:
+            formatado += f") {numeros[2]}"
+        if len(numeros) >= 4:
+            formatado += f" {numeros[3:7]}"
+        if len(numeros) >= 8:
+            formatado += f"-{numeros[7:11]}"
+        widget.delete(0, "end")
+        widget.insert(0, formatado)
+
     def cadastrar():
+
         # TEMPORÁRIO
         entry_login_admin = {"login": "", "senha": ""}
 
-        def abrir_login_admin():
-            def salvar_login():
+        def loginAdmin():
+            def salvarLogin():
                 login = entryLogin.get()
                 senha = entrySenha.get()
                 if login and senha:
@@ -168,49 +190,44 @@ def janelaPessoas():
             mensagemAdmin = Label(janelaLogin, text="", bg=co0, fg="red")
             mensagemAdmin.pack(pady=(5, 0))
 
-            Button(janelaLogin, text="Salvar", command=salvar_login).pack(pady=10)
+            Button(janelaLogin, text="Salvar", command=salvarLogin).pack(pady=10)
 
         def salvar():
-            nome = entry_nome.get()
-            celular = entry_celular.get()
+            nome = entryNome.get()
+            celular = entryCelular.get()
             tipo = tipoVar.get()
-
             if nome and celular and tipo:
-                if tipo == "Administrador":
-                    if not entry_login_admin.get("login") or not entry_login_admin.get("senha"):
-                        mensagem.config(text="Preencha login e senha!")
-                        return
                 novoId = len(tabela.get_children()) + 1
                 tabela.insert("", "end", values=[novoId, nome, celular, tipo])
                 janelaCadastro.destroy()
             else:
-                mensagem.config(text="Preencha todos os campos!")
+                mensagem.config(text="Preencha todos os campos corretamente!")
 
         def on_tipo_selected(event):
             if tipoVar.get() == "Administrador":
-                abrir_login_admin()
+                loginAdmin()
 
-        # Tela principal
         janelaCadastro = Toplevel(janelaPessoas)
         janelaCadastro.title("Cadastrar Pessoa")
-        janelaCadastro.geometry("300x300")
+        janelaCadastro.geometry("300x240")
         janelaCadastro.configure(bg=co0)
         janelaCadastro.resizable(width=FALSE, height=FALSE)
 
         Label(janelaCadastro, text="Nome", bg=co0, fg=co1).pack(pady=(15, 0))
-        entry_nome = Entry(janelaCadastro)
-        entry_nome.pack()
+        entryNome = Entry(janelaCadastro)
+        entryNome.pack()
 
         Label(janelaCadastro, text="Celular", bg=co0, fg=co1).pack(pady=(10, 0))
-        entry_celular = Entry(janelaCadastro)
-        entry_celular.pack()
+        entryCelular = Entry(janelaCadastro)
+        entryCelular.pack()
+        entryCelular.bind("<KeyRelease>", formatarCelular)
 
         Label(janelaCadastro, text="Tipo", bg=co0, fg=co1).pack(pady=(10, 0))
         tipoVar = StringVar()
-        combo_tipo = ttk.Combobox(janelaCadastro, textvariable=tipoVar, state="readonly")
-        combo_tipo["values"] = ["Comprador", "Vendedor", "Ambos", "Administrador"]
-        combo_tipo.pack()
-        combo_tipo.bind("<<ComboboxSelected>>", on_tipo_selected)
+        comboTipo = ttk.Combobox(janelaCadastro, textvariable=tipoVar, state="readonly")
+        comboTipo["values"] = ["Comprador", "Vendedor", "Comprador e Vendedor", "Administrador"]
+        comboTipo.pack()
+        comboTipo.bind("<<ComboboxSelected>>", on_tipo_selected)
 
         mensagem = Label(janelaCadastro, text="", bg=co0, fg="red")
         mensagem.pack()
@@ -244,11 +261,12 @@ def janelaPessoas():
             entryCelular = Entry(janelaEditar)
             entryCelular.insert(0, valores[2])
             entryCelular.pack()
+            entryCelular.bind("<KeyRelease>", formatarCelular)
     
             Label(janelaEditar, text="Tipo", bg=co0, fg=co1).pack(pady=(10, 0))
             tipoVar = StringVar()
             comboboxTipo = ttk.Combobox(janelaEditar, textvariable=tipoVar, state="readonly")
-            comboboxTipo["values"] = ["Comprador", "Vendedor", "Ambos"]
+            comboboxTipo["values"] = ["Comprador", "Vendedor", "Comprador e Vendedor"]
             comboboxTipo.set(valores[3])
             comboboxTipo.pack()
     
@@ -264,6 +282,8 @@ def janelaPessoas():
     janelaPessoas.geometry("900x650")
     janelaPessoas.configure(background=co0)
     janelaPessoas.resizable(width=FALSE, height=FALSE)
+    janelaPessoas.grid_rowconfigure(1, weight=1)
+    janelaPessoas.grid_columnconfigure(0, weight=1)
 
     # DIV CIMA
     divCima = Frame(janelaPessoas, width=900, height=90, background=co6, relief="flat")
@@ -279,16 +299,19 @@ def janelaPessoas():
     # DIV MEIO
     divMeio = Frame(janelaPessoas, width=900, height=460, background=co8, relief="flat")
     divMeio.grid(row=1, column=0, padx=10, sticky="nsew")
+    divMeio.grid_propagate(False)
+    divMeio.grid_rowconfigure(1, weight=1)
+    divMeio.grid_columnconfigure(0, weight=1)
 
     titulo = Label(divMeio, text="Cadastro de Pessoas", font=("Verdana", 20, "bold"),
                    background=co8, foreground=co1)
-    titulo.pack(pady=(10, 10))
+    titulo.grid(row=0, column=0, pady=(10, 0), sticky="n")
 
     frameTabela = Frame(divMeio, background=co8, bd=2, relief="solid")
-    frameTabela.pack(fill="x", padx=20)
+    frameTabela.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
 
     colunas = ["id", "nome", "celular", "tipo"]
-    tabela = ttk.Treeview(frameTabela, columns=colunas, show="headings", height=12)
+    tabela = ttk.Treeview(frameTabela, columns=colunas, show="headings")
 
     for col in colunas:
         tabela.heading(col, text=col.capitalize())
@@ -298,7 +321,7 @@ def janelaPessoas():
     tabela.column("celular", width=200, anchor="center")
     tabela.column("tipo", width=200, anchor="center")
 
-    tabela.pack(fill="x")
+    tabela.pack(fill="both", expand=True)
 
     # TESTE ANTES
     dadosPessoas = [
@@ -311,7 +334,7 @@ def janelaPessoas():
         tabela.insert("", "end", values=dado)
 
     frameBotoes = Frame(divMeio, background=co8)
-    frameBotoes.pack(pady=10)
+    frameBotoes.grid(row=2, column=0, pady=10)
     ttk.Button(frameBotoes, text="Cadastrar", command=cadastrar).pack(side=LEFT, padx=10)
     ttk.Button(frameBotoes, text="Editar", command=editar).pack(side=LEFT, padx=10)
     ttk.Button(frameBotoes, text="Excluir", command=excluir).pack(side=LEFT, padx=10)
@@ -325,14 +348,126 @@ def janelaPessoas():
     copyright_label.pack(side=RIGHT, padx=10, pady=10)
 
 
+def janelaValor():
+
+    janelaValores = Toplevel()
+    janelaValores.title("Controle de Valores")
+    janelaValores.geometry("1100x650")
+    janelaValores.configure(background=co0)
+    janelaValores.resizable(width=FALSE, height=FALSE)
+    janelaValores.grid_rowconfigure(1, weight=1)
+    janelaValores.grid_columnconfigure(0, weight=3)
+    janelaValores.grid_columnconfigure(1, weight=1)
+
+    # DIV CIMA
+    divCima = Frame(janelaValores, width=1000, height=90, background=co6, relief="flat")
+    divCima.grid(row=0, column=0, columnspan=2, sticky="nsew")
+    appImg = Image.open('Images/icone.jpg')
+    appImg = appImg.resize((250, 70))
+    appImg = ImageTk.PhotoImage(appImg)
+    appLogo = Label(divCima, image=appImg, text="  Controle de Valores", compound=LEFT,
+                    background=co6, fg=co1, anchor=NW, font=("Verdana", 20), relief="raised")
+    appLogo.image = appImg
+    appLogo.place(x=10, y=5)
+
+    # DIV MEIO
+    divMeio = Frame(janelaValores, background=co8, bd=2, relief="solid", width=600, height=460)
+    divMeio.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+    divMeio.grid_propagate(False)
+
+    colunas = ["id", "data","nome", "tipo", "motivo", "valor"]
+    tabela = ttk.Treeview(divMeio, columns=colunas, show="headings")
+
+    for col in colunas:
+        tabela.heading(col, text=col.upper())
+
+    tabela.column("id", width=25, anchor="center")
+    tabela.column("data", width=70, anchor="center")
+    tabela.column("nome", width=130, anchor="center")
+    tabela.column("tipo", width=80, anchor="center")
+    tabela.column("motivo", width=150, anchor="center")
+    tabela.column("valor", width=50, anchor="center")
+
+
+    tabela.pack(fill="both", expand=True)
+
+    # Estou criando tantos testes, quero ver jogar depois para o banco de dados...
+    dadosValores = [
+        [1, "05-05-2025", "João", "Entrada", "Venda de produto", 2000],
+        [2, "10-05-2025", "Maria", "Saída", "Compra de materiais", 500],
+        [3, "15-05-2025", "Carlos", "Entrada", "Serviço prestado", 1500],
+        [4, "18-05-2025", "Ana", "Saída", "Pagamento fornecedor", 800]
+    ]
+    for dado in dadosValores:
+        cor = "green" if dado[3] == "Entrada" else "red"
+        tabela.insert("", "end", values=dado, tags=(cor,))
+
+    tabela.tag_configure("green", background="#d0ffd0")
+    tabela.tag_configure("red", background="#ffd0d0")
+
+    frameGrafico = Frame(janelaValores, background=co8, bd=2, relief="solid", width=380, height=460)
+    frameGrafico.grid(row=1, column=1, padx=10, pady=10, sticky="nsew")
+    frameGrafico.grid_propagate(False)
+
+    from collections import defaultdict
+    import datetime
+
+    entradasMensais = defaultdict(float)
+    saidasMensais = defaultdict(float)
+
+    for dado in dadosValores:
+        data_str = dado[1]
+        tipo = dado[3]
+        valor = dado[5]
+
+        data = datetime.datetime.strptime(data_str, "%d-%m-%Y")
+        mes = data.strftime("%b")
+
+        if tipo == "Entrada":
+            entradasMensais[mes] += valor
+        else:
+            saidasMensais[mes] += valor
+
+    todosMeses = ["Jan", "Fev", "Mar", "Abr", "Maio", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"] #Depois tenho que fazer o sistema por dias, por enquanto ficará assim...
+    mesesPresentes = [m for m in todosMeses if m in entradasMensais or m in saidasMensais]
+
+    entradas = [entradasMensais[mes] for mes in mesesPresentes]
+    saidas = [saidasMensais[mes] for mes in mesesPresentes]
+    lucros = [entradasMensais[mes] - saidasMensais[mes] for mes in mesesPresentes]
+
+    fig, ax = plt.subplots(figsize=(5, 3))
+
+    x = range(len(mesesPresentes))
+    ax.bar([i - 0.25 for i in x], saidas, width=0.25, label='Saídas', color='red')
+    ax.bar(x, entradas, width=0.25, label='Entradas', color='green')
+    ax.bar([i + 0.25 for i in x], lucros, width=0.25, label='Lucro', color='gold')
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(mesesPresentes)
+    ax.set_title("Resumo Financeiro Mensal")
+    ax.set_ylabel("R$")
+    ax.legend()
+
+    canvas = FigureCanvasTkAgg(fig, master=frameGrafico)
+    canvas.draw()
+    canvas.get_tk_widget().pack(fill="both", expand=True)
+
+    # DIV BAIXO
+    divBaixo = Frame(janelaValores, width=1000, height=40, background=co6, relief="flat")
+    divBaixo.grid(row=2, column=0, columnspan=2, sticky="ew")
+    Label(divBaixo, text="© 2025 Frank Kiess - Todos os direitos reservados",
+          bg=co6, fg=co1, font=("Verdana", 10)).pack(side=RIGHT, padx=10, pady=10)
+
+
 
 ################# SISTEMA DE LOGIN DO APLICATIVO ###############
+
 def verificarLogin():
     usuario = entradaUsuario.get()
     senha = entradaSenha.get()
 
     # Simples verificação (substituir com validação real)
-    if usuario == "admin" and senha == "admin":
+    if usuario == "" and senha == "":
         janelaPrincipal()
     else:
         aviso["text"] = "Usuário ou senha inválidos"
