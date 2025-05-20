@@ -458,8 +458,53 @@ def janelaValor():
     Label(divBaixo, text="© 2025 Frank Kiess - Todos os direitos reservados",
           bg=co6, fg=co1, font=("Verdana", 10)).pack(side=RIGHT, padx=10, pady=10)
 
+def janelaGestor():
 
+    janelaGestao = Tk()
+    janelaGestao.geometry("900x650")
+    janela.configure(background=co0)
+    janela.resizable(width=FALSE, height=FALSE)
 
+    # DIV CIMA
+    divCima = Frame(janelaPessoas, width=900, height=90, background=co6, relief="flat")
+    divCima.grid(row=0, column=0, sticky="nsew")
+    appImg = Image.open('Images/icone.jpg')
+    appImg = appImg.resize((250, 70))
+    appImg = ImageTk.PhotoImage(appImg)
+    appLogo = Label(divCima, image=appImg, text="  Cadastros pessoais", compound=LEFT,
+                    background=co6, fg=co1, anchor=NW, font=("Verdana", 20), relief="raised")
+    appLogo.image = appImg
+    appLogo.place(x=10, y=5)
+
+    # DIV MEIO
+    divMeio = Frame(janelaPessoas, width=900, height=460, background=co8, relief="flat")
+    divMeio.grid(row=1, column=0, padx=10, sticky="nsew")
+    divMeio.grid_propagate(False)
+    divMeio.grid_rowconfigure(1, weight=1)
+    divMeio.grid_columnconfigure(0, weight=1)
+    
+    titulo = Label(divMeio, font=("Verdana", 25, "bold"), sticky="N", text="GESTÃO EMPRESARIAL")
+    
+    colunaTrabalho = ["id","nome", "objetivo", "valor", "data_recebida", "data_entrega","idPessoa"]
+    colunaTrabalho = ttk.Treeview(divMeio, columns=colunas, show="headings")
+
+    for col in colunaTrabalho:
+        tabela.heading(col, text=col.upper())
+
+    tabela.column("id", width=25, anchor="center")
+    tabela.column("nome", width=130, anchor="center")
+    tabela.column("objetivo", width=80, anchor="center")
+    tabela.column("valor", width=70, anchor="center")
+    tabela.column("data_recebida", width=150, anchor="center")
+    tabela.column("data_entrega", width=50, anchor="center")
+    tabela.column("idPessoa", width=30, anchor="center")
+    
+    # DIV BAIXO
+    divBaixo = Frame(janelaValores, width=1000, height=40, background=co6, relief="flat")
+    divBaixo.grid(row=2, column=0, columnspan=2, sticky="ew")
+    Label(divBaixo, text="© 2025 Frank Kiess - Todos os direitos reservados",
+          bg=co6, fg=co1, font=("Verdana", 10)).pack(side=RIGHT, padx=10, pady=10)
+    
 ################# SISTEMA DE LOGIN DO APLICATIVO ###############
 
 def verificarLogin():
