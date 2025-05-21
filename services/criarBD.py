@@ -2,9 +2,6 @@ import sqlite3 as lite
 
 con = lite.connect("dados.db")
 
-
-#Nossas TABELAS!!!
-
 with con:
     cur = con.cursor()
 
@@ -27,19 +24,26 @@ with con:
     cur.execute("""
         CREATE TABLE IF NOT EXISTS Receitas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            categoria_id INTEGER,
-            adicionado_em DATE,
+            data DATE,
+            idPessoa INTEGER,
+            tipo TEXT,
+            motivo TEXT,
             valor REAL,
+            categoria_id INTEGER,
+            FOREIGN KEY (idPessoa) REFERENCES Pessoa(id),
             FOREIGN KEY (categoria_id) REFERENCES Categoria(id)
         )
     """)
 
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS Gastos (
+        CREATE TABLE IF NOT EXISTS Tarefa (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            categoria_id INTEGER,
-            retirado_em DATE,
+            idPessoa INTEGER,
+            objetivo TEXT,
             valor REAL,
-            FOREIGN KEY (categoria_id) REFERENCES Categoria(id)
+            data_recebida DATE,
+            data_entregue DATE,
+            status TEXT DEFAULT 'ativo',
+            FOREIGN KEY (idPessoa) REFERENCES Pessoa(id)
         )
     """)

@@ -2,63 +2,128 @@ import sqlite3 as lite
 
 con = lite.connect("dados.db")
 
-def inserirPessoa(i):
+
+# PESSOA
+
+def inserirPessoa(pessoa):
+    """Insere uma nova pessoa."""
     with con:
         cur = con.cursor()
-        query = "INSERT INTO Pessoa (nome, contato, tipo) VALUES (?, ?, ?)"
-        cur.execute(query, i)
+        cur.execute("INSERT INTO Pessoa (nome, contato, tipo) VALUES (?, ?, ?)", pessoa)
 
-inserirPessoa(["Marilei", "54996054694", "comprador"])
-
-
-def inserirCategoria(i):
+def listarPessoas():
+    """Retorna todas as pessoas."""
     with con:
         cur = con.cursor()
-        query = "INSERT INTO Categoria (nome) VALUES (?)"
-        cur.execute(query, i)
+        cur.execute("SELECT * FROM Pessoa")
+        return cur.fetchall()
 
-inserirCategoria(["Alimentacao"])
-
-
-def inserirReceitas(i):
+def deletarPessoa(idPessoa):
+    """Remove pessoa pelo ID."""
     with con:
         cur = con.cursor()
-        query = "INSERT INTO Receitas (categoria_id, adicionado_em, valor) VALUES (?, ?, ?)"
-        cur.execute(query, i)
+        cur.execute("DELETE FROM Pessoa WHERE id = ?", (idPessoa,))
 
-inserirReceitas([1, "2025-05-16", 16.0])
-
-
-def inserirGastos(i):
+def atualizarPessoa(idPessoa, nome, contato, tipo):
+    """Atualiza os dados de uma pessoa."""
     with con:
         cur = con.cursor()
-        query = "INSERT INTO Gastos (categoria_id, retirado_em, valor) VALUES (?, ?, ?)"
-        cur.execute(query, i)
+        cur.execute("""
+            UPDATE Pessoa 
+            SET nome = ?, contato = ?, tipo = ?
+            WHERE id = ?
+        """, (nome, contato, tipo, idPessoa))
 
-inserirGastos([1, "2025-05-16", 20.0])
-
-def deletarReceitas(i):
+def obterValores():
+    """Retorna receitas formatadas para exibição na tabela de valores."""
     with con:
         cur = con.cursor()
-        query = "DELETE FROM Receitas WHERE id=?"
-        cur.execute(query, i)
+        cur.execute("""
+            SELECT 
+                Receitas.id, 
+                Receitas.data, 
+                Pessoa.nome, 
+                Receitas.tipo, 
+                Receitas.motivo, 
+                Receitas.valor
+            FROM Receitas
+            JOIN Pessoa ON Receitas.idPessoa = Pessoa.id
+        """)
+        return cur.fetchall()
 
-def deletarGastos(i):
+# CATEGORIA
+
+def inserirCategoria(nomeCategoria):
+    """Insere uma nova categoria."""
     with con:
         cur = con.cursor()
-        query = "DELETE FROM Gastos WHERE id=?"
-        cur.execute(query, i)
+        cur.execute("INSERT INTO Categoria (nome) VALUES (?)", (nomeCategoria,))
 
-def verCategoria():
-    listaItens = []
-
+def listarCategorias():
+    """Retorna todas as categorias."""
     with con:
         cur = con.cursor()
         cur.execute("SELECT * FROM Categoria")
-        linha = cur.fetchall()
-        for l in linha:
-            listaItens.append(l)
-        
-        return listaItens
-    
-print(verCategoria())
+        return cur.fetchall()
+
+def deletarCategoria(idCategoria):
+    """Remove categoria pelo ID."""
+    with con:
+        cur = con.cursor()
+        cur.execute("DELETE FROM Categoria WHERE id = ?", (idCategoria,))
+
+
+# RECEITAS
+
+def inserir_receita(receita):
+    """Insere uma nova receita."""
+    with con:
+        cur = con.cursor()
+        cur.execute("""
+            INSERT INTO Receitas (data, idPessoa, tipo, motivo, valor, categoria_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, receita)
+
+def listarReceitas():
+    """Retorna todas as receitas."""
+    with con:
+        cur = con.cursor()
+        cur.execute("SELECT * FROM Receitas")
+        return cur.fetchall()
+
+def deletarReceita(idReceita):
+    """Remove receita pelo ID."""
+    with con:
+        cur = con.cursor()
+        cur.execute("DELETE FROM Receitas WHERE id = ?", (idReceita,))
+
+# TAREFAS
+
+def inserir_tarefa(tarefa):
+    """Insere nova tarefa."""
+    with con:
+        cur = con.cursor()
+        cur.execute("""
+            INSERT INTO Tarefa (idPessoa, objetivo, valor, data_recebida, data_entregue, status)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, tarefa)
+
+def listarTarefas(status=None):
+    """Retorna tarefas com ou sem filtro por status ('ativo' ou 'finalizado')."""
+    with con:
+        cur = con.cursor()
+        if status:
+            cur.execute("SELECT * FROM Tarefa WHERE status = ?", (status,))
+        else:
+            cur.execute("SELECT * FROM Tarefa")
+        return cur.fetchall()
+
+def atualizar_status_tarefa(idTarefa, novoStatus):
+    with con:
+        cur = con.cursor()
+        cur.execute("UPDATE Tarefa SET status = ? WHERE id = ?", (novoStatus, idTarefa))
+
+def deletar_tarefa(idTarefa):
+    with con:
+        cur = con.cursor()
+        cur.execute("DELETE FROM Tarefa WHERE id = ?", (idTarefa,))
