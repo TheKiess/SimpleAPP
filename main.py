@@ -80,10 +80,10 @@ def janelaPrincipal():
                           selectforeground="white", selectbackground=co8)
     calendario.pack(padx=10, pady=10, expand=True, fill="both")
 
-    #TABELA
+    # TABELA
     frameTabela = Frame(divMeio, background=co8, bd=2, relief="solid")
     frameTabela.grid(row=1, column=1, padx=20, pady=30, sticky=N)
-    colunas = ["nome", "entrega","valor"]
+    colunas = ["nome", "entrega", "valor"]
     tabela = ttk.Treeview(frameTabela, columns=colunas, show="headings", height=12)
 
     tabela.heading("nome", text="Nome da Pessoa")
@@ -96,22 +96,9 @@ def janelaPrincipal():
 
     tabela.bind("<Button-1>", lambda e: "break" if tabela.identify_region(e.x, e.y) == "separator" else None)
     tabela.grid_propagate(False)
-
-
-    # Ficou estranho, mas dá para entender...
-    dadosExemplo = [
-        ["Maria da Costura", "20/05/2025", "80.00 R$"],
-        ["Joana Linha", "22/05/2025", "65.50 R$"],
-        ["Ana Agulha", "25/05/2025", "77.00 R$"]
-    ]
-    for dado in dadosExemplo:
-        tabela.insert("", "end", values=dado)
-        nome, data_str, valor = dado
-        dia, mes, ano = map(int, data_str.split("/"))
-        data = datetime.date(ano, mes, dia)
-        calendario.calevent_create(data, f"{nome}", "entrega")
-    calendario.tag_config("entrega", foreground="white", background=co9)
     tabela.pack()
+
+    tarefaJanelaPrincipal(tabela, calendario, con, co9)
 
     # LEGENDA
     legendaFrame = Frame(divMeio, background=co8)
@@ -523,7 +510,7 @@ def janelaGestor():
         tarefa = (idPessoa, objetivo, valor, data_recebida, data_entregue, "ativo")
         resposta = messagebox.askyesno("Confirmar Adição", f"Deseja adicionar a tarefa:\n\n{tarefa}")
         if resposta:
-            inserir_tarefa(tarefa)
+            inserirReceita(tarefa)
             messagebox.showinfo("Sucesso", "Tarefa adicionada com sucesso!")
             for entrada in entries.values():
                 entrada.delete(0, END)
