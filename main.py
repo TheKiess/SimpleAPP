@@ -9,6 +9,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import datetime
 from services.view import *
+from services.view import tarefaJanelaPrincipal, listarServicos
 
 ################# CORES!!! ###############
 
@@ -184,9 +185,11 @@ def janelaPessoas():
         def salvar():
             nome = entryNome.get()
             celular = entryCelular.get()
+            documento = entryDocumento.get()
             tipo = tipoVar.get()
-            if nome and celular and tipo:
-                inserirPessoa((nome, celular, tipo))
+
+            if nome and celular and documento and tipo:
+                inserirPessoa((nome, celular, documento, tipo))
                 carregarPessoas()
                 janelaCadastro.destroy()
             else:
@@ -207,11 +210,15 @@ def janelaPessoas():
         Label(janelaCadastro, text="Nome", bg=co0, fg=co1).pack(pady=(15, 0))
         entryNome = Entry(janelaCadastro)
         entryNome.pack()
-
+        
         Label(janelaCadastro, text="Celular", bg=co0, fg=co1).pack(pady=(10, 0))
         entryCelular = Entry(janelaCadastro)
         entryCelular.pack()
         entryCelular.bind("<KeyRelease>", formatarCelular)
+
+        Label(janelaCadastro, text="Documento", bg=co0, fg=co1).pack(pady=(10, 0))
+        entryDocumento = Entry(janelaCadastro)
+        entryDocumento.pack()
 
         Label(janelaCadastro, text="Tipo", bg=co0, fg=co1).pack(pady=(10, 0))
         tipoVar = StringVar()
@@ -304,16 +311,12 @@ def janelaPessoas():
     frameTabela = Frame(divMeio, background=co8, bd=2, relief="solid")
     frameTabela.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
 
-    colunas = ["id", "nome", "celular", "tipo"]
+    colunas = ["id", "nome", "contato", "documento", "tipo"]
     tabela = ttk.Treeview(frameTabela, columns=colunas, show="headings")
-    for col in colunas:
-        tabela.heading(col, text=col.capitalize())
 
-    tabela.column("id", width=50, anchor="center")
-    tabela.column("nome", width=300, anchor="center")
-    tabela.column("celular", width=200, anchor="center")
-    tabela.column("tipo", width=200, anchor="center")
-    tabela.pack(fill="both", expand=True)
+    for col in colunas: #Amanha temos que ajeitar isso aqui!
+        tabela.heading(col, text=col.upper())
+        tabela.column(col, anchor="center", width=100)
 
     # BOTÕES
     frameBotoes = Frame(divMeio, background=co8)
@@ -466,13 +469,15 @@ def janelaGestor():
 
     # Função para carregar tarefas nas tabelas
     def carregar_tarefas():
+        pessoas = {p[0]: p[1] for p in listarPessoas()}  # {id: nome} LEMBRAR!!!
+
         for tabela, status in [(tabelaAtivos, "ativo"), (tabelaFinalizados, "finalizado")]:
             for row in tabela.get_children():
                 tabela.delete(row)
-            tarefas = listarTarefas(status)
-            for tarefa in tarefas:
-                id_, idPessoa, objetivo, valor, data_recebida, data_entregue, _ = tarefa
-                nome = f"ID {idPessoa}"  # Pode-se substituir por nome real, se necessário
+            servicos = listarServicos(status)
+            for servico in servicos:
+                id_, idPessoa, objetivo, valor, data_recebida, data_entregue, _ = servico
+                nome = pessoas.get(idPessoa, f"ID {idPessoa}")
                 tabela.insert("", "end", values=(id_, nome, objetivo, valor, data_recebida, data_entregue))
 
     # PRIMEIRA ABA - ADICIONAR TAREFA
@@ -507,10 +512,10 @@ def janelaGestor():
             messagebox.showwarning("Campos vazios", "Por favor, preencha todos os campos.")
             return
 
-        tarefa = (idPessoa, objetivo, valor, data_recebida, data_entregue, "ativo")
+        tarefa = (idPessoa, objetivo, valor, data_recebida, data_entregue, "ativo", None)  # None = tempo ainda não registrado
         resposta = messagebox.askyesno("Confirmar Adição", f"Deseja adicionar a tarefa:\n\n{tarefa}")
         if resposta:
-            inserirReceita(tarefa)
+            inserirServico(tarefa)
             messagebox.showinfo("Sucesso", "Tarefa adicionada com sucesso!")
             for entrada in entries.values():
                 entrada.delete(0, END)

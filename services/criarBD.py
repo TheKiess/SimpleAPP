@@ -42,22 +42,8 @@ with con:
             valor REAL,
             produtos TEXT, -- pode armazenar info resumida ou string JSON
             data DATE,
-            nome_itens TEXT,
             idPessoa INTEGER,
             FOREIGN KEY (idPessoa) REFERENCES Pessoa(id)
-        )
-    """)
-
-    # TABELA ITEM VENDA
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS ItemVenda (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            idVenda INTEGER,
-            idProduto INTEGER,
-            quantidade INTEGER,
-            valor_unitario REAL,
-            FOREIGN KEY (idVenda) REFERENCES Venda(id),
-            FOREIGN KEY (idProduto) REFERENCES Produto(id)
         )
     """)
 
@@ -69,7 +55,10 @@ with con:
             objetivo TEXT,
             data_inicio DATE,
             data_fim DATE,
-            tempo TEXT -- duração estimada ou real
+            tempo TEXT, -- duração estimada ou real
+            valor_final REAL,
+            idPessoa INTEGER,
+            FOREIGN KEY (idPessoa) REFERENCES Pessoa(id)
         )
     """)
 
@@ -79,20 +68,9 @@ with con:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             idProduto INTEGER,
             idServico INTEGER,
+            produtos_usados TEXT,
             quantidade INTEGER,
-            valor REAL,
             FOREIGN KEY (idProduto) REFERENCES Produto(id),
-            FOREIGN KEY (idServico) REFERENCES Servico(id)
-        )
-    """)
-
-    # TABELA AGENDA
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS Agenda (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            idPessoa INTEGER,
-            idServico INTEGER,
-            FOREIGN KEY (idPessoa) REFERENCES Pessoa(id),
             FOREIGN KEY (idServico) REFERENCES Servico(id)
         )
     """)

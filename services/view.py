@@ -3,7 +3,7 @@ import datetime
 
 con = lite.connect("dados.db")
 
-# PESSOA
+################ TABELA PESSOA ################
 
 def inserirPessoa(pessoa):
     with con:
@@ -16,44 +16,23 @@ def listarPessoas():
         cur.execute("SELECT * FROM Pessoa")
         return cur.fetchall()
 
+def atualizarPessoa(idPessoa, nome, contato, documento, tipo):
+    with con:
+        cur = con.cursor()
+        cur.execute("""
+            UPDATE Pessoa SET nome = ?, contato = ?, documento = ?, tipo = ? WHERE id = ?
+        """, (nome, contato, documento, tipo, idPessoa))
+
 def deletarPessoa(idPessoa):
     with con:
         cur = con.cursor()
         cur.execute("DELETE FROM Pessoa WHERE id = ?", (idPessoa,))
 
-def atualizarPessoa(idPessoa, nome, contato, documento, tipo):
+################ TABELA PRODUTO ################
+def inserirProduto(nome):
     with con:
         cur = con.cursor()
-        cur.execute("""
-            UPDATE Pessoa 
-            SET nome = ?, contato = ?, documento = ?, tipo = ?
-            WHERE id = ?
-        """, (nome, contato, documento, tipo, idPessoa))
-
-# CATEGORIA
-
-def inserirCategoria(nomeCategoria):
-    with con:
-        cur = con.cursor()
-        cur.execute("INSERT INTO Categoria (nome) VALUES (?)", (nomeCategoria,))
-
-def listarCategorias():
-    with con:
-        cur = con.cursor()
-        cur.execute("SELECT * FROM Categoria")
-        return cur.fetchall()
-
-def deletarCategoria(idCategoria):
-    with con:
-        cur = con.cursor()
-        cur.execute("DELETE FROM Categoria WHERE id = ?", (idCategoria,))
-
-# PRODUTO
-
-def inserirProduto(nomeProduto):
-    with con:
-        cur = con.cursor()
-        cur.execute("INSERT INTO Produto (nome) VALUES (?)", (nomeProduto,))
+        cur.execute("INSERT INTO Produto (nome) VALUES (?)", (nome,))
 
 def listarProdutos():
     with con:
@@ -66,12 +45,13 @@ def deletarProduto(idProduto):
         cur = con.cursor()
         cur.execute("DELETE FROM Produto WHERE id = ?", (idProduto,))
 
-# ESTOQUE
+################ TABELA ESTOQUE ################
 
-def inserirEstoque(estoque):
+def inserirEstoque(idProduto, tipo_produto, quantidade):
     with con:
         cur = con.cursor()
-        cur.execute("INSERT INTO Estoque (idProduto, tipo_produto, quantidade) VALUES (?, ?, ?)", estoque)
+        cur.execute("INSERT INTO Estoque (idProduto, tipo_produto, quantidade) VALUES (?, ?, ?)", 
+                    (idProduto, tipo_produto, quantidade))
 
 def listarEstoque():
     with con:
@@ -84,62 +64,97 @@ def atualizarEstoque(idEstoque, quantidade):
         cur = con.cursor()
         cur.execute("UPDATE Estoque SET quantidade = ? WHERE id = ?", (quantidade, idEstoque))
 
-# TAREFA (SERVIÇO)
+################ TABELA SERVICO ################
 
-def inserirTarefa(tarefa):
+def inserirServico(servico):
     with con:
         cur = con.cursor()
         cur.execute("""
-            INSERT INTO Tarefa (idPessoa, objetivo, valor, data_recebida, data_entregue, status, tempo)
+            INSERT INTO Servico (status, objetivo, data_inicio, data_fim, tempo, valor_final, idPessoa)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, tarefa)
+        """, servico)
 
-def listarTarefas(status=None):
+def listarServicos(status=None):
     with con:
         cur = con.cursor()
         if status:
-            cur.execute("SELECT * FROM Tarefa WHERE status = ?", (status,))
+            cur.execute("""
+                SELECT 
+                    s.id,
+                    s.idPessoa,
+                    s.objetivo,
+                    s.valor_final,
+                    s.data_inicio,
+                    s.data_fim,
+                    s.tempo
+                FROM Servico s
+                WHERE s.status = ?
+            """, (status,))
         else:
-            cur.execute("SELECT * FROM Tarefa")
+            cur.execute("""
+                SELECT 
+                    s.id,
+                    s.idPessoa,
+                    s.objetivo,
+                    s.valor_final,
+                    s.data_inicio,
+                    s.data_fim,
+                    s.tempo
+                FROM Servico s
+            """)
         return cur.fetchall()
 
-def atualizarStatusTarefa(idTarefa, novoStatus):
-    with con:
-        cur = con.cursor()
-        cur.execute("UPDATE Tarefa SET status = ? WHERE id = ?", (novoStatus, idTarefa))
-
-def deletarTarefa(idTarefa):
-    with con:
-        cur = con.cursor()
-        cur.execute("DELETE FROM Tarefa WHERE id = ?", (idTarefa,))
-
-# PRODUTOS USADOS EM TAREFAS
-
-def inserirProdutoUsado(produtoUsado):
+def atualizarServico(idServico, status, objetivo, data_inicio, data_fim, tempo, valor_final):
     with con:
         cur = con.cursor()
         cur.execute("""
-            INSERT INTO ProdutoUsado (idProduto, idTarefa, quantidade, valor_unitario)
-            VALUES (?, ?, ?, ?)
-        """, produtoUsado)
+            UPDATE Servico SET status = ?, objetivo = ?, data_inicio = ?, data_fim = ?, tempo = ?, valor_final = ? 
+            WHERE id = ?
+        """, (status, objetivo, data_inicio, data_fim, tempo, valor_final, idServico))
 
-def listarProdutosUsados():
+def deletarServico(idServico):
     with con:
         cur = con.cursor()
-        cur.execute("SELECT * FROM ProdutoUsado")
+        cur.execute("DELETE FROM Servico WHERE id = ?", (idServico,))
+
+################ TABELA UTILIZA ################
+
+def vincularProdutoAoServico(idProduto, idServico, produtos_usados, quantidade):
+    with con:
+        cur = con.cursor()
+        cur.execute("""
+            INSERT INTO Utiliza (idProduto, idServico, produtos_usados, quantidade)
+            VALUES (?, ?, ?, ?)
+        """, (idProduto, idServico, produtos_usados, quantidade))
+
+def listarProdutosPorServico():
+    with con:
+        cur = con.cursor()
+        cur.execute("SELECT * FROM Utiliza")
         return cur.fetchall()
 
-# VENDA
+################ TABELA VENDA ################
 
 def inserirVenda(venda):
     with con:
         cur = con.cursor()
-        cur.execute("INSERT INTO Venda (idPessoa, valor, data) VALUES (?, ?, ?)", venda)
+        cur.execute("INSERT INTO Venda (valor, produtos, data, idPessoa) VALUES (?, ?, ?, ?)", venda)
 
 def listarVendas():
     with con:
         cur = con.cursor()
-        cur.execute("SELECT * FROM Venda")
+        cur.execute("""
+            SELECT 
+                v.id,
+                v.valor,
+                v.produtos,
+                v.data,
+                v.idPessoa,
+                p.nome,
+                p.tipo
+            FROM Venda v
+            JOIN Pessoa p ON v.idPessoa = p.id
+        """)
         return cur.fetchall()
 
 def deletarVenda(idVenda):
@@ -147,86 +162,69 @@ def deletarVenda(idVenda):
         cur = con.cursor()
         cur.execute("DELETE FROM Venda WHERE id = ?", (idVenda,))
 
-# ITENS DA VENDA
-
-def inserirItemVenda(item):
-    with con:
-        cur = con.cursor()
-        cur.execute("""
-            INSERT INTO ItemVenda (idVenda, idProduto, quantidade, valor_unitario)
-            VALUES (?, ?, ?, ?)
-        """, item)
-
-def listarItensVenda():
-    with con:
-        cur = con.cursor()
-        cur.execute("SELECT * FROM ItemVenda")
-        return cur.fetchall()
-
-# RECEITAS (FINANCEIRO)
-
-def inserirReceita(receita):
-    with con:
-        cur = con.cursor()
-        cur.execute("""
-            INSERT INTO Receitas (data, idPessoa, tipo, motivo, valor, categoria_id)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, receita)
-
-def listarReceitas():
-    with con:
-        cur = con.cursor()
-        cur.execute("SELECT * FROM Receitas")
-        return cur.fetchall()
-
-def deletarReceita(idReceita):
-    with con:
-        cur = con.cursor()
-        cur.execute("DELETE FROM Receitas WHERE id = ?", (idReceita,))
+################ COMANDO  ################
 
 def obterValores():
-    with con:
-        cur = con.cursor()
+    dados = []
+
+    # SERVIÇOS → ENTRADA DE DINHEIRO!!
+    for servico in listarServicos():
+        id_, status, objetivo, data_inicio, data_fim, tempo, valor, idPessoa, nomePessoa, tipoPessoa = servico
+        dados.append((
+            id_,
+            data_inicio,
+            nomePessoa,
+            "Entrada",
+            f"Serviço: {objetivo}",
+            valor
+        ))
+
+    # VENDAS → SAÍDA DE DINHEIRO!!
+    for venda in listarVendas():
+        idVenda, valor, produtos, data, idPessoa, nome, tipo = venda
+        dados.append((
+            idVenda,
+            data,
+            nome,
+            "Saída",
+            f"Venda: {produtos}",
+            valor
+        ))
+
+    return dados
+
+def tarefaJanelaPrincipal(tabela, calendario, conexao, cor_evento):
+    try:
+        cur = conexao.cursor()
         cur.execute("""
             SELECT 
-                Receitas.id, 
-                Receitas.data, 
-                Pessoa.nome, 
-                Receitas.tipo, 
-                Receitas.motivo, 
-                Receitas.valor
-            FROM Receitas
-            JOIN Pessoa ON Receitas.idPessoa = Pessoa.id
+                s.data_fim,
+                s.valor_final,
+                p.nome
+            FROM Servico s
+            JOIN Pessoa p ON s.idPessoa = p.id
+            WHERE s.data_fim IS NOT NULL
         """)
-        return cur.fetchall()
-
-# INTERFACE COM CALENDÁRIO E TABELA
-
-def tarefaJanelaPrincipal(tabela, calendario, con, co9):
-    try:
-        with con:
-            cur = con.cursor()
-            cur.execute("""
-                SELECT Pessoa.nome, Tarefa.data_entregue, Tarefa.valor
-                FROM Tarefa
-                JOIN Pessoa ON Tarefa.idPessoa = Pessoa.id
-                WHERE Tarefa.status = 'ativo'
-            """)
-            tarefas = cur.fetchall()
-
-        for item in tabela.get_children():
-            tabela.delete(item)
-
-        for nome, data_str, valor in tarefas:
-            if data_str:
-                ano, mes, dia = map(int, data_str.split("-"))
-                data_formatada = f"{dia:02d}/{mes:02d}/{ano}"
-                data_obj = datetime.date(ano, mes, dia)
-
-                tabela.insert("", "end", values=(nome, data_formatada, f"{valor:.2f} R$"))
-                calendario.calevent_create(data_obj, f"{nome}", "entrega")
-
-        calendario.tag_config("entrega", foreground="white", background=co9)
-
+        resultados = cur.fetchall()
     except Exception as e:
-        print(f"Erro ao carregar tarefas: {e}")
+        print("Erro ao carregar tarefas:", e)
+        return
+
+    for data_fim, valor, nome in resultados:
+        try:
+            if isinstance(data_fim, str):
+                try:
+                    data = datetime.datetime.strptime(data_fim, "%Y-%m-%d").date()
+                except:
+                    data = datetime.datetime.strptime(data_fim, "%d-%m-%Y").date()
+            else:
+                data = data_fim
+
+            calendario.calevent_create(data, "Entrega", "entrega")
+            calendario.tag_config("entrega", background=cor_evento, foreground="white")
+
+            data_str = data.strftime("%d/%m/%Y")
+            valor_str = f"R$ {float(valor):.2f}" if valor else "R$ 0,00"
+            tabela.insert("", "end", values=(nome, data_str, valor_str))
+        except Exception as e:
+            print(f"Erro ao processar tarefa: {e}")
