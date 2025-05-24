@@ -167,7 +167,7 @@ def janelaPessoas():
             janelaLogin.title("Login do Administrador")
             janelaLogin.geometry("300x180")
             janelaLogin.configure(bg=co0)
-            janelaLogin.resizable(width=FALSE, height=FALSE)
+            janelaLogin.resizable(False, False)
 
             Label(janelaLogin, text="Login", bg=co0, fg=co1).pack(pady=(15, 0))
             entryLogin = Entry(janelaLogin)
@@ -196,21 +196,21 @@ def janelaPessoas():
                 mensagem.config(text="Preencha todos os campos corretamente!")
 
         def on_tipo_selected(event):
-            if tipoVar.get() == "Administrador":
+            if tipoVar.get() == "administrador":
                 loginAdmin()
 
         entry_login_admin = {"login": "", "senha": ""}
 
         janelaCadastro = Toplevel(janelaPessoas)
         janelaCadastro.title("Cadastrar Pessoa")
-        janelaCadastro.geometry("300x240")
+        janelaCadastro.geometry("280x320")
         janelaCadastro.configure(bg=co0)
-        janelaCadastro.resizable(width=FALSE, height=FALSE)
+        janelaCadastro.resizable(False, False)
 
         Label(janelaCadastro, text="Nome", bg=co0, fg=co1).pack(pady=(15, 0))
         entryNome = Entry(janelaCadastro)
         entryNome.pack()
-        
+
         Label(janelaCadastro, text="Celular", bg=co0, fg=co1).pack(pady=(10, 0))
         entryCelular = Entry(janelaCadastro)
         entryCelular.pack()
@@ -223,33 +223,35 @@ def janelaPessoas():
         Label(janelaCadastro, text="Tipo", bg=co0, fg=co1).pack(pady=(10, 0))
         tipoVar = StringVar()
         comboTipo = ttk.Combobox(janelaCadastro, textvariable=tipoVar, state="readonly")
-        comboTipo["values"] = ["Comprador", "Vendedor", "Comprador e Vendedor", "Administrador"]
+        comboTipo["values"] = ["comprador", "vendedor", "ambos", "administrador"]
         comboTipo.pack()
         comboTipo.bind("<<ComboboxSelected>>", on_tipo_selected)
 
         mensagem = Label(janelaCadastro, text="", bg=co0, fg="red")
         mensagem.pack()
 
-        Button(janelaCadastro, text="Salvar", command=salvar).pack(pady=20)
+        Button(janelaCadastro, text="Salvar", command=salvar).pack(pady=10)
 
     def editar():
         item = tabela.selection()
         if item:
             valores = tabela.item(item, "values")
+
             def salvar_edicao():
                 novoNome = entryNome.get()
                 novoCelular = entryCelular.get()
+                novoDocumento = entryDocumento.get()
                 novoTipo = tipoVar.get()
-                if novoNome and novoCelular and novoTipo:
-                    atualizarPessoa(valores[0], novoNome, novoCelular, novoTipo)
+                if novoNome and novoCelular and novoDocumento and novoTipo:
+                    atualizarPessoa(valores[0], novoNome, novoCelular, novoDocumento, novoTipo)
                     carregarPessoas()
                     janelaEditar.destroy()
 
             janelaEditar = Toplevel(janelaPessoas)
             janelaEditar.title("Editar Pessoa")
-            janelaEditar.geometry("300x250")
+            janelaEditar.geometry("280x320")
             janelaEditar.configure(bg=co0)
-            janelaEditar.resizable(width=FALSE, height=FALSE)
+            janelaEditar.resizable(False, False)
 
             Label(janelaEditar, text="Nome", bg=co0, fg=co1).pack(pady=(10, 0))
             entryNome = Entry(janelaEditar)
@@ -262,11 +264,16 @@ def janelaPessoas():
             entryCelular.pack()
             entryCelular.bind("<KeyRelease>", formatarCelular)
 
+            Label(janelaEditar, text="Documento", bg=co0, fg=co1).pack(pady=(10, 0))
+            entryDocumento = Entry(janelaEditar)
+            entryDocumento.insert(0, valores[3])
+            entryDocumento.pack()
+
             Label(janelaEditar, text="Tipo", bg=co0, fg=co1).pack(pady=(10, 0))
             tipoVar = StringVar()
             comboboxTipo = ttk.Combobox(janelaEditar, textvariable=tipoVar, state="readonly")
-            comboboxTipo["values"] = ["Comprador", "Vendedor", "Comprador e Vendedor", "Administrador"]
-            comboboxTipo.set(valores[3])
+            comboboxTipo["values"] = ["comprador", "vendedor", "ambos", "administrador"]
+            comboboxTipo.set(valores[4])
             comboboxTipo.pack()
 
             Button(janelaEditar, text="Salvar", command=salvar_edicao).pack(pady=20)
@@ -283,7 +290,7 @@ def janelaPessoas():
     janelaPessoas.title("Cadastro de Pessoas")
     janelaPessoas.geometry("900x650")
     janelaPessoas.configure(background=co0)
-    janelaPessoas.resizable(width=FALSE, height=FALSE)
+    janelaPessoas.resizable(False, False)
     janelaPessoas.grid_rowconfigure(1, weight=1)
     janelaPessoas.grid_columnconfigure(0, weight=1)
 
@@ -313,10 +320,13 @@ def janelaPessoas():
 
     colunas = ["id", "nome", "contato", "documento", "tipo"]
     tabela = ttk.Treeview(frameTabela, columns=colunas, show="headings")
-
-    for col in colunas: #Amanha temos que ajeitar isso aqui!
+    tabela.grid(row=0, column=0, sticky="nsew")
+    for col in colunas:
         tabela.heading(col, text=col.upper())
         tabela.column(col, anchor="center", width=100)
+
+    frameTabela.grid_rowconfigure(0, weight=1)
+    frameTabela.grid_columnconfigure(0, weight=1)
 
     # BOTÕES
     frameBotoes = Frame(divMeio, background=co8)
@@ -333,6 +343,7 @@ def janelaPessoas():
           bg=co6, fg=co1, font=("Verdana", 10)).pack(side=RIGHT, padx=10, pady=10)
 
     carregarPessoas()
+
 
 def janelaValor():
     janelaValores = Toplevel()
@@ -442,111 +453,217 @@ def janelaValor():
 
 def janelaGestor():
 
+    def janelaAdicionarServico():
+        janela = Toplevel()
+        janela.title("Adicionar Serviço")
+        janela.geometry("400x450")
+        janela.configure(background=co0)
+        janela.resizable(False, False)
+
+        Label(janela, text="Cadastrar Novo Serviço", bg=co0, fg=co1, font=("Verdana", 14)).pack(pady=10)
+
+        Label(janela, text="Objetivo:", bg=co0, anchor=W).pack(fill=X, padx=20)
+        entrada_objetivo = Entry(janela, font=("Verdana", 10))
+        entrada_objetivo.pack(padx=20, fill=X)
+
+        Label(janela, text="Valor Final (R$):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        entrada_valor = Entry(janela, font=("Verdana", 10))
+        entrada_valor.pack(padx=20, fill=X)
+
+        Label(janela, text="Data de Início (YYYY-MM-DD):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        entrada_inicio = Entry(janela, font=("Verdana", 10))
+        entrada_inicio.pack(padx=20, fill=X)
+
+        Label(janela, text="Data de Fim (YYYY-MM-DD):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        entrada_fim = Entry(janela, font=("Verdana", 10))
+        entrada_fim.pack(padx=20, fill=X)
+
+        Label(janela, text="Tempo (dias):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        entrada_tempo = Entry(janela, font=("Verdana", 10))
+        entrada_tempo.pack(padx=20, fill=X)
+
+        Label(janela, text="Pessoa vinculada:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        pessoas = listarPessoas()
+        nomes = [p[1] for p in pessoas]
+        pessoa_var = StringVar()
+        combo_pessoa = ttk.Combobox(janela, textvariable=pessoa_var, values=nomes, font=("Verdana", 10), state="readonly")
+        combo_pessoa.pack(padx=20, fill=X)
+
+        def salvar_servico():
+            objetivo = entrada_objetivo.get()
+            valor = entrada_valor.get()
+            data_inicio = entrada_inicio.get()
+            data_fim = entrada_fim.get()
+            tempo = entrada_tempo.get()
+            nome_pessoa = pessoa_var.get()
+
+            if not (objetivo and valor and data_inicio and data_fim and tempo and nome_pessoa):
+                messagebox.showwarning("Aviso", "Preencha todos os campos!")
+                return
+
+            try:
+                idPessoa = [p[0] for p in pessoas if p[1] == nome_pessoa][0]
+                servico = ("ativo", objetivo, data_inicio, data_fim, tempo, float(valor), idPessoa)
+                inserirServico(servico)
+                messagebox.showinfo("Sucesso", "Serviço adicionado com sucesso!")
+                janela.destroy()
+                carregar_dados()
+            except Exception as e:
+                messagebox.showerror("Erro", f"Ocorreu um erro ao salvar: {e}")
+
+        Button(janela, text="Salvar Serviço", bg="#4CAF50", fg="white", font=("Verdana", 10),
+               command=salvar_servico).pack(pady=20)
+
+    def janelaAdicionarProduto():
+        janela = Toplevel()
+        janela.title("Adicionar Produto")
+        janela.geometry("300x200")
+        janela.configure(background=co0)
+        janela.resizable(False, False)
+
+        Label(janela, text="Nome do Produto:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(20, 5))
+        entrada_nome = Entry(janela, font=("Verdana", 10))
+        entrada_nome.pack(padx=20, fill=X)
+
+        def salvar_produto():
+            nome = entrada_nome.get()
+            if not nome:
+                messagebox.showwarning("Aviso", "Digite o nome do produto.")
+                return
+
+            try:
+                inserirProduto(nome)
+                messagebox.showinfo("Sucesso", "Produto adicionado com sucesso!")
+                janela.destroy()
+                carregar_dados()
+            except Exception as e:
+                messagebox.showerror("Erro", f"Erro ao salvar produto: {e}")
+
+        Button(janela, text="Salvar Produto", bg="#4CAF50", fg="white", font=("Verdana", 10),
+               command=salvar_produto).pack(pady=20)
+
+    def janelaAdicionarCompra():
+        janela = Toplevel()
+        janela.title("Adicionar Compra")
+        janela.geometry("400x350")
+        janela.configure(background=co0)
+        janela.resizable(False, False)
+
+        Label(janela, text="Cadastrar Nova Compra", bg=co0, fg=co1, font=("Verdana", 14)).pack(pady=10)
+
+        Label(janela, text="Valor Total (R$):", bg=co0, anchor=W).pack(fill=X, padx=20)
+        entrada_valor = Entry(janela, font=("Verdana", 10))
+        entrada_valor.pack(padx=20, fill=X)
+
+        Label(janela, text="Produtos:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        entrada_produtos = Entry(janela, font=("Verdana", 10))
+        entrada_produtos.pack(padx=20, fill=X)
+
+        Label(janela, text="Data (YYYY-MM-DD):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        entrada_data = Entry(janela, font=("Verdana", 10))
+        entrada_data.pack(padx=20, fill=X)
+
+        Label(janela, text="Pessoa compradora:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        pessoas = listarPessoas()
+        nomes = [p[1] for p in pessoas]
+        pessoa_var = StringVar()
+        combo_pessoa = ttk.Combobox(janela, textvariable=pessoa_var, values=nomes, font=("Verdana", 10), state="readonly")
+        combo_pessoa.pack(padx=20, fill=X)
+
+        def salvar_compra():
+            valor = entrada_valor.get()
+            produtos = entrada_produtos.get()
+            data = entrada_data.get()
+            nome_pessoa = pessoa_var.get()
+
+            if not (valor and produtos and data and nome_pessoa):
+                messagebox.showwarning("Aviso", "Preencha todos os campos!")
+                return
+
+            try:
+                idPessoa = [p[0] for p in pessoas if p[1] == nome_pessoa][0]
+                venda = (float(valor), produtos, data, idPessoa)
+                inserirVenda(venda)
+                messagebox.showinfo("Sucesso", "Compra registrada com sucesso!")
+                janela.destroy()
+                carregar_dados()
+            except Exception as e:
+                messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
+
+        Button(janela, text="Salvar Compra", bg="#4CAF50", fg="white", font=("Verdana", 10),
+               command=salvar_compra).pack(pady=20)
+    
     janelaGestao = Toplevel()
-    janelaGestao.title("Gestor de Tarefas")
-    janelaGestao.geometry("900x650")
+    janelaGestao.title("Gestor de Serviços")
+    janelaGestao.geometry("1000x700")
     janelaGestao.configure(background=co0)
     janelaGestao.resizable(False, False)
 
     # DIV CIMA
-    divCima = Frame(janelaGestao, width=900, height=90, background=co6)
+    divCima = Frame(janelaGestao, width=1000, height=90, background=co6)
     divCima.pack(side=TOP, fill=X)
-    appImg = Image.open('Images/icone.jpg')
-    appImg = appImg.resize((250, 70))
+    appImg = Image.open('Images/icone.jpg').resize((250, 70))
     appImg = ImageTk.PhotoImage(appImg)
     appLogo = Label(divCima, image=appImg, text="   Sistema de gestão", compound=LEFT,
                     background=co6, fg=co1, anchor=NW, font=("Verdana", 20), relief="raised")
     appLogo.image = appImg
     appLogo.place(x=10, y=5)
 
-    # DIV MEIO
     notebook = ttk.Notebook(janelaGestao)
     notebook.pack(fill=BOTH, expand=True)
 
-    frameAdicionar = Frame(notebook, bg=co8)
+    # FRAMES PARA ABAS
     frameAtivos = Frame(notebook, bg=co8)
     frameFinalizados = Frame(notebook, bg=co8)
+    frameProdutos = Frame(notebook, bg=co8)
+    frameEstoque = Frame(notebook, bg=co8)
+    frameCompras = Frame(notebook, bg=co8)
 
-    # Função para carregar tarefas nas tabelas
-    def carregar_tarefas():
-        pessoas = {p[0]: p[1] for p in listarPessoas()}  # {id: nome} LEMBRAR!!!
-
-        for tabela, status in [(tabelaAtivos, "ativo"), (tabelaFinalizados, "finalizado")]:
-            for row in tabela.get_children():
-                tabela.delete(row)
-            servicos = listarServicos(status)
-            for servico in servicos:
-                id_, idPessoa, objetivo, valor, data_recebida, data_entregue, _ = servico
-                nome = pessoas.get(idPessoa, f"ID {idPessoa}")
-                tabela.insert("", "end", values=(id_, nome, objetivo, valor, data_recebida, data_entregue))
-
-    # PRIMEIRA ABA - ADICIONAR TAREFA
-    notebook.add(frameAdicionar, text="Adicionar Tarefa")
-    Label(frameAdicionar, text="Nova Tarefa", font=("Verdana", 14, "bold"), bg=co8).pack(pady=10)
-
-    form_frame = Frame(frameAdicionar, bg=co8)
-    form_frame.pack(pady=10)
-
-    labels = ["ID Pessoa", "Objetivo", "Valor", "Data Recebida", "Data Entrega"]
-    entries = {}
-
-    for i, label in enumerate(labels):
-        lbl = Label(form_frame, text=label + ":", font=("Verdana", 10), bg=co8)
-        lbl.grid(row=i, column=0, sticky="e", pady=5, padx=5)
-        ent = Entry(form_frame, width=30)
-        ent.grid(row=i, column=1, pady=5, padx=5)
-        entries[label] = ent
-
-    def adicionarTarefa():
-        try:
-            idPessoa = int(entries["ID Pessoa"].get().strip())
-            objetivo = entries["Objetivo"].get().strip()
-            valor = float(entries["Valor"].get().strip())
-            data_recebida = entries["Data Recebida"].get().strip()
-            data_entregue = entries["Data Entrega"].get().strip()
-        except ValueError:
-            messagebox.showerror("Erro", "Certifique-se de preencher ID e Valor corretamente.")
-            return
-
-        if not all([idPessoa, objetivo, valor, data_recebida, data_entregue]):
-            messagebox.showwarning("Campos vazios", "Por favor, preencha todos os campos.")
-            return
-
-        tarefa = (idPessoa, objetivo, valor, data_recebida, data_entregue, "ativo", None)  # None = tempo ainda não registrado
-        resposta = messagebox.askyesno("Confirmar Adição", f"Deseja adicionar a tarefa:\n\n{tarefa}")
-        if resposta:
-            inserirServico(tarefa)
-            messagebox.showinfo("Sucesso", "Tarefa adicionada com sucesso!")
-            for entrada in entries.values():
-                entrada.delete(0, END)
-            carregar_tarefas()
-
-    btn_frame = Frame(frameAdicionar, bg=co8)
-    btn_frame.pack(pady=10)
-
-    Button(btn_frame, text="Adicionar Tarefa", command=adicionarTarefa,
-           font=("Verdana", 10), bg="#4CAF50", fg="white", padx=10).pack()
-
-    # SEGUNDA ABA - SERVIÇOS ATIVOS
     notebook.add(frameAtivos, text="Serviços Ativos")
-
-    colunas = ["id", "nome", "objetivo", "valor", "data_recebida", "data_entregue"]
-    tabelaAtivos = ttk.Treeview(frameAtivos, columns=colunas, show="headings")
-    tabelaAtivos.pack(fill=BOTH, expand=True, padx=10, pady=10)
-
-    for col in colunas:
-        tabelaAtivos.heading(col, text=col.upper())
-        tabelaAtivos.column(col, anchor="center", width=120 if col != "id" else 40)
-
-    # TERCEIRA ABA - SERVIÇOS FINALIZADOS
     notebook.add(frameFinalizados, text="Serviços Finalizados")
+    notebook.add(frameProdutos, text="Produtos")
+    notebook.add(frameEstoque, text="Estoque")
+    notebook.add(frameCompras, text="Compras")
 
-    tabelaFinalizados = ttk.Treeview(frameFinalizados, columns=colunas, show="headings")
+    # Introdução na aba Serviços Ativos
+    Label(frameAtivos, text="Nesta aba, você pode acompanhar os serviços em andamento.\nClique no botão abaixo para adicionar um novo serviço.",
+          bg=co8, fg=co1, font=("Verdana", 10)).pack(pady=(10, 5))
+
+    # Tabelas
+    colunas_servico = ["id", "nome", "objetivo", "valor", "data_inicio", "data_fim"]
+    tabelaAtivos = ttk.Treeview(frameAtivos, columns=colunas_servico, show="headings")
+    tabelaAtivos.pack(fill=BOTH, expand=True, padx=10, pady=(0, 5))
+    for col in colunas_servico:
+        tabelaAtivos.heading(col, text=col.upper())
+
+    Button(frameAtivos, text="Adicionar Serviço", font=("Verdana", 10),
+           bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarServico).pack(pady=10)
+
+    tabelaFinalizados = ttk.Treeview(frameFinalizados, columns=colunas_servico, show="headings")
     tabelaFinalizados.pack(fill=BOTH, expand=True, padx=10, pady=10)
-
-    for col in colunas:
+    for col in colunas_servico:
         tabelaFinalizados.heading(col, text=col.upper())
-        tabelaFinalizados.column(col, anchor="center", width=120 if col != "id" else 40)
+
+    tabelaProdutos = ttk.Treeview(frameProdutos, columns=["id", "nome"], show="headings")
+    tabelaProdutos.pack(fill=BOTH, expand=True, padx=10, pady=(10, 5))
+    for col in ["id", "nome"]:
+        tabelaProdutos.heading(col, text=col.upper())
+
+    Button(frameProdutos, text="Adicionar Produto", font=("Verdana", 10),
+           bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarProduto).pack(pady=10)
+
+    tabelaEstoque = ttk.Treeview(frameEstoque, columns=["id", "tipo_produto", "quantidade", "idProduto"], show="headings")
+    tabelaEstoque.pack(fill=BOTH, expand=True, padx=10, pady=10)
+    for col in ["id", "tipo_produto", "quantidade", "idProduto"]:
+        tabelaEstoque.heading(col, text=col.upper())
+
+    tabelaCompras = ttk.Treeview(frameCompras, columns=["id", "valor", "produtos", "data", "idPessoa", "nome", "tipo"], show="headings")
+    tabelaCompras.pack(fill=BOTH, expand=True, padx=10, pady=(10, 5))
+    for col in ["id", "valor", "produtos", "data", "idPessoa", "nome", "tipo"]:
+        tabelaCompras.heading(col, text=col.upper())
+
+    Button(frameCompras, text="Adicionar Compra", font=("Verdana", 10),
+           bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarCompra).pack(pady=10)
 
     # DIV BAIXO
     divBaixo = Frame(janelaGestao, height=40, background=co6)
@@ -554,7 +671,33 @@ def janelaGestor():
     Label(divBaixo, text="© 2025 Frank Kiess - Todos os direitos reservados",
           bg=co6, fg=co1, font=("Verdana", 10)).pack(side=RIGHT, padx=10, pady=10)
 
-    carregar_tarefas()
+    # Função para carregar dados nas abas
+    def carregar_dados():
+        pessoas = {p[0]: p[1] for p in listarPessoas()}
+        for tabela, status in [(tabelaAtivos, "ativo"), (tabelaFinalizados, "finalizado")]:
+            for row in tabela.get_children():
+                tabela.delete(row)
+            for servico in listarServicos(status):
+                id_, idPessoa, objetivo, valor, data_inicio, data_fim, _ = servico
+                nome = pessoas.get(idPessoa, f"ID {idPessoa}")
+                tabela.insert("", "end", values=(id_, nome, objetivo, valor, data_inicio, data_fim))
+
+        for row in tabelaProdutos.get_children():
+            tabelaProdutos.delete(row)
+        for produto in listarProdutos():
+            tabelaProdutos.insert("", "end", values=produto)
+
+        for row in tabelaEstoque.get_children():
+            tabelaEstoque.delete(row)
+        for item in listarEstoque():
+            tabelaEstoque.insert("", "end", values=item)
+
+        for row in tabelaCompras.get_children():
+            tabelaCompras.delete(row)
+        for venda in listarVendas():
+            tabelaCompras.insert("", "end", values=venda)
+
+    carregar_dados()
     janelaGestao.mainloop()
     
 ################# SISTEMA DE LOGIN DO APLICATIVO ###############

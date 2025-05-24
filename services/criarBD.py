@@ -12,7 +12,7 @@ with con:
             nome TEXT,
             contato TEXT,
             documento TEXT,
-            tipo TEXT -- 'comprador', 'vendedor' ou 'ambos'
+            tipo TEXT -- 'comprador', 'administrador', 'vendedor' ou 'ambos'
         )
     """)
 
