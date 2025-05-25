@@ -103,7 +103,43 @@ def listarServicos(status=None):
                 FROM Servico s
             """)
         return cur.fetchall()
-
+    
+def listarServicosComPessoa(status=None):
+    with con:
+        cur = con.cursor()
+        if status:
+            cur.execute("""
+                SELECT 
+                    s.id,
+                    s.idPessoa,
+                    s.objetivo,
+                    s.valor_final,
+                    s.data_inicio,
+                    s.data_fim,
+                    s.tempo,
+                    p.nome,
+                    p.tipo
+                FROM Servico s
+                JOIN Pessoa p ON s.idPessoa = p.id
+                WHERE s.status = ?
+            """, (status,))
+        else:
+            cur.execute("""
+                SELECT 
+                    s.id,
+                    s.idPessoa,
+                    s.objetivo,
+                    s.valor_final,
+                    s.data_inicio,
+                    s.data_fim,
+                    s.tempo,
+                    p.nome,
+                    p.tipo
+                FROM Servico s
+                JOIN Pessoa p ON s.idPessoa = p.id
+            """)
+        return cur.fetchall()
+    
 def atualizarServico(idServico, status, objetivo, data_inicio, data_fim, tempo, valor_final):
     with con:
         cur = con.cursor()
@@ -167,9 +203,8 @@ def deletarVenda(idVenda):
 def obterValores():
     dados = []
 
-    # SERVIÇOS → ENTRADA DE DINHEIRO!!
-    for servico in listarServicos():
-        id_, status, objetivo, data_inicio, data_fim, tempo, valor, idPessoa, nomePessoa, tipoPessoa = servico
+    for servico in listarServicosComPessoa():
+        id_, idPessoa, objetivo, valor, data_inicio, data_fim, tempo, nomePessoa, tipoPessoa = servico
         dados.append((
             id_,
             data_inicio,
@@ -179,7 +214,6 @@ def obterValores():
             valor
         ))
 
-    # VENDAS → SAÍDA DE DINHEIRO!!
     for venda in listarVendas():
         idVenda, valor, produtos, data, idPessoa, nome, tipo = venda
         dados.append((

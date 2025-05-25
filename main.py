@@ -410,7 +410,7 @@ def janelaValor():
             data = datetime.datetime.strptime(dado[1], "%d-%m-%Y")
         except ValueError:
             try:
-                data = datetime.datetime.strptime(dado[1], "%Y-%m-%d")  # Fallback
+                data = datetime.datetime.strptime(dado[1], "%Y-%m-%d")
             except:
                 continue
 
@@ -421,8 +421,9 @@ def janelaValor():
         else:
             saidasMensais[mes] += valor
 
-    todosMeses = ["Jan", "Fev", "Mar", "Abr", "Maio", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
-    mesesPresentes = [m for m in todosMeses if m in entradasMensais or m in saidasMensais]
+    todosMeses = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    mesesPresentes = sorted(set(list(entradasMensais.keys()) + list(saidasMensais.keys())),
+                        key=lambda m: todosMeses.index(m))
 
     entradas = [entradasMensais[mes] for mes in mesesPresentes]
     saidas = [saidasMensais[mes] for mes in mesesPresentes]
@@ -453,6 +454,36 @@ def janelaValor():
 
 def janelaGestor():
 
+    def formatar_data(event):
+        entrada = event.widget
+        texto = entrada.get()
+        numeros = ''.join(filter(str.isdigit, texto))[:8]
+
+        novo_texto = ""
+        if len(numeros) >= 2:
+            novo_texto += numeros[:2] + "-"
+        else:
+            novo_texto += numeros
+        if len(numeros) >= 4:
+            novo_texto += numeros[2:4] + "-"
+        elif len(numeros) > 2:
+            novo_texto += numeros[2:]
+        if len(numeros) > 4:
+            novo_texto += numeros[4:]
+
+        entrada.delete(0, 'end')
+        entrada.insert(0, novo_texto)
+
+        if len(novo_texto) == 10:
+            try:
+                dia, mes, ano = map(int, novo_texto.split("-"))
+                datetime.date(ano, mes, dia)
+                entrada.config(bg="white")
+            except ValueError:
+                entrada.config(bg="#ffcccc")
+        else:
+            entrada.config(bg="white")
+
     def janelaAdicionarServico():
         janela = Toplevel()
         janela.title("Adicionar Serviço")
@@ -470,20 +501,23 @@ def janelaGestor():
         entrada_valor = Entry(janela, font=("Verdana", 10))
         entrada_valor.pack(padx=20, fill=X)
 
-        Label(janela, text="Data de Início (YYYY-MM-DD):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        Label(janela, text="Data de Início (DD-MM-AAAA):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
         entrada_inicio = Entry(janela, font=("Verdana", 10))
         entrada_inicio.pack(padx=20, fill=X)
+        entrada_inicio.bind("<KeyRelease>", formatar_data)
 
-        Label(janela, text="Data de Fim (YYYY-MM-DD):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        Label(janela, text="Data de Fim (DD-MM-AAAA):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
         entrada_fim = Entry(janela, font=("Verdana", 10))
         entrada_fim.pack(padx=20, fill=X)
+        entrada_fim.bind("<KeyRelease>", formatar_data)
 
-        Label(janela, text="Tempo (dias):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
-        entrada_tempo = Entry(janela, font=("Verdana", 10))
-        entrada_tempo.pack(padx=20, fill=X)
+        label_tempo_texto = Label(janela, text="Tempo (dias):", bg=co0, anchor=W)
+        label_tempo_texto.pack(fill=X, padx=20, pady=(10, 0))
+        label_tempo = Label(janela, text="0", font=("Verdana", 10), bg=co0, fg=co1)
+        label_tempo.pack(padx=20, fill=X)
 
         Label(janela, text="Pessoa vinculada:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
-        pessoas = listarPessoas()
+        pessoas = [p for p in listarPessoas() if p[4] in ("comprador", "ambos")]
         nomes = [p[1] for p in pessoas]
         pessoa_var = StringVar()
         combo_pessoa = ttk.Combobox(janela, textvariable=pessoa_var, values=nomes, font=("Verdana", 10), state="readonly")
@@ -494,10 +528,10 @@ def janelaGestor():
             valor = entrada_valor.get()
             data_inicio = entrada_inicio.get()
             data_fim = entrada_fim.get()
-            tempo = entrada_tempo.get()
+            tempo = label_tempo.cget("text")
             nome_pessoa = pessoa_var.get()
 
-            if not (objetivo and valor and data_inicio and data_fim and tempo and nome_pessoa):
+            if not (objetivo and valor and data_inicio and data_fim and nome_pessoa):
                 messagebox.showwarning("Aviso", "Preencha todos os campos!")
                 return
 
@@ -559,12 +593,13 @@ def janelaGestor():
         entrada_produtos = Entry(janela, font=("Verdana", 10))
         entrada_produtos.pack(padx=20, fill=X)
 
-        Label(janela, text="Data (YYYY-MM-DD):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        Label(janela, text="Data (DD-MM-AAAA):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
         entrada_data = Entry(janela, font=("Verdana", 10))
         entrada_data.pack(padx=20, fill=X)
+        entrada_data.bind("<KeyRelease>", formatar_data)
 
         Label(janela, text="Pessoa compradora:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
-        pessoas = listarPessoas()
+        pessoas = [p for p in listarPessoas() if p[4] in ("vendedor", "ambos")]
         nomes = [p[1] for p in pessoas]
         pessoa_var = StringVar()
         combo_pessoa = ttk.Combobox(janela, textvariable=pessoa_var, values=nomes, font=("Verdana", 10), state="readonly")
@@ -630,37 +665,64 @@ def janelaGestor():
           bg=co8, fg=co1, font=("Verdana", 10)).pack(pady=(10, 5))
 
     # Tabelas
-    colunas_servico = ["id", "nome", "objetivo", "valor", "data_inicio", "data_fim"]
-    tabelaAtivos = ttk.Treeview(frameAtivos, columns=colunas_servico, show="headings")
+    colunaServico = ["id", "nome", "objetivo", "valor", "data_inicio", "data_fim"]
+    tabelaAtivos = ttk.Treeview(frameAtivos, columns=colunaServico, show="headings")
     tabelaAtivos.pack(fill=BOTH, expand=True, padx=10, pady=(0, 5))
-    for col in colunas_servico:
+
+    for col in colunaServico:
         tabelaAtivos.heading(col, text=col.upper())
+    largura_colunas_ativos = [25, 160, 160, 75, 40, 40]
+    for col, largura in zip(colunaServico, largura_colunas_ativos):
+        tabelaAtivos.column(col, width=largura, anchor="center")
 
     Button(frameAtivos, text="Adicionar Serviço", font=("Verdana", 10),
            bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarServico).pack(pady=10)
 
-    tabelaFinalizados = ttk.Treeview(frameFinalizados, columns=colunas_servico, show="headings")
+
+
+    tabelaFinalizados = ttk.Treeview(frameFinalizados, columns=colunaServico, show="headings")
     tabelaFinalizados.pack(fill=BOTH, expand=True, padx=10, pady=10)
-    for col in colunas_servico:
+
+    for col in colunaServico:
         tabelaFinalizados.heading(col, text=col.upper())
+    largura_colunas_finalizados = [25, 160, 160, 75, 40, 40]
+    for col, largura in zip(colunaServico, largura_colunas_finalizados):
+        tabelaFinalizados.column(col, width=largura, anchor="center")
 
     tabelaProdutos = ttk.Treeview(frameProdutos, columns=["id", "nome"], show="headings")
     tabelaProdutos.pack(fill=BOTH, expand=True, padx=10, pady=(10, 5))
-    for col in ["id", "nome"]:
+
+    colunaProdutos = ["id", "nome"]
+    for col in colunaProdutos:
         tabelaProdutos.heading(col, text=col.upper())
+    largura_colunas_produtos = [25, 320]
+    for col, largura in zip(colunaProdutos, largura_colunas_produtos):
+        tabelaProdutos.column(col, width=largura, anchor="center")
 
     Button(frameProdutos, text="Adicionar Produto", font=("Verdana", 10),
            bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarProduto).pack(pady=10)
 
     tabelaEstoque = ttk.Treeview(frameEstoque, columns=["id", "tipo_produto", "quantidade", "idProduto"], show="headings")
     tabelaEstoque.pack(fill=BOTH, expand=True, padx=10, pady=10)
-    for col in ["id", "tipo_produto", "quantidade", "idProduto"]:
+
+    colunaEstoque = ["id", "tipo_produto", "quantidade", "idProduto"]
+    for col in colunaEstoque:
         tabelaEstoque.heading(col, text=col.upper())
+
+    largura_colunas_estoque = [25, 150, 45, 25]
+    for col, largura in zip(colunaEstoque, largura_colunas_estoque):
+        tabelaEstoque.column(col, width=largura, anchor="center")
 
     tabelaCompras = ttk.Treeview(frameCompras, columns=["id", "valor", "produtos", "data", "idPessoa", "nome", "tipo"], show="headings")
     tabelaCompras.pack(fill=BOTH, expand=True, padx=10, pady=(10, 5))
-    for col in ["id", "valor", "produtos", "data", "idPessoa", "nome", "tipo"]:
+
+    colunasCompras = ["id", "valor", "produtos", "data", "idPessoa", "nome", "tipo"]
+    for col in colunasCompras:
         tabelaCompras.heading(col, text=col.upper())
+    
+    largura_colunas_compras = [25, 75, 120, 60, 25, 80, 30]
+    for col, largura in zip(colunasCompras, largura_colunas_compras):
+        tabelaCompras.column(col, width=largura, anchor="center")
 
     Button(frameCompras, text="Adicionar Compra", font=("Verdana", 10),
            bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarCompra).pack(pady=10)
