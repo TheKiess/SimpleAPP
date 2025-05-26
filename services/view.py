@@ -1,3 +1,4 @@
+import sqlite3
 import sqlite3 as lite
 import datetime
 
@@ -197,6 +198,43 @@ def deletarVenda(idVenda):
     with con:
         cur = con.cursor()
         cur.execute("DELETE FROM Venda WHERE id = ?", (idVenda,))
+
+################ TABELA HISTORICO PAGAMENTO  ################
+def registrarPagamentoParcial(id_servico, valor_parcial):
+    conexao = sqlite3.connect('dados.db')
+    cursor = conexao.cursor()
+
+    try:
+        cursor.execute("SELECT valor FROM Servico WHERE id = ?", (id_servico,))
+        resultado = cursor.fetchone()
+
+        if resultado is None:
+            return {"status": "erro", "mensagem": "Serviço não encontrado."}
+
+        valor_atual = resultado[0]
+        novo_valor = valor_atual - valor_parcial
+
+        if novo_valor < 0:
+            return {"status": "erro", "mensagem": "O valor parcial excede o valor restante do serviço."}
+
+        cursor.execute("UPDATE Servico SET valor = ? WHERE id = ?", (novo_valor, id_servico))
+
+        data_pagamento = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+
+        cursor.execute("""
+            INSERT INTO HistoricoPagamento (idServico, valor_pago, data_pagamento)
+            VALUES (?, ?, ?)
+        """, (id_servico, valor_parcial, data_pagamento))
+
+        conexao.commit()
+        return {"status": "sucesso", "mensagem": "Pagamento parcial registrado com sucesso!"}
+
+    except sqlite3.Error as e:
+        conexao.rollback()
+        return {"status": "erro", "mensagem": f"Erro no banco de dados: {str(e)}"}
+
+    finally:
+        conexao.close()
 
 ################ COMANDO  ################
 

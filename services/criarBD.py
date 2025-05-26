@@ -74,3 +74,14 @@ with con:
             FOREIGN KEY (idServico) REFERENCES Servico(id)
         )
     """)
+
+    # TABELA DO HISTORICO DE PAGAMENTO
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS HistoricoPagamento (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            idServico INTEGER,
+            valor_pago REAL,
+            data_pagamento TEXT,
+            FOREIGN KEY (idServico) REFERENCES Servico(id)
+        )
+    """)

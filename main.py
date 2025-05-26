@@ -383,7 +383,6 @@ def janelaValor():
 
     tabela.pack(fill="both", expand=True)
 
-    # 🔄 INTEGRA COM BANCO
     try:
         dadosValores = obterValores()
     except Exception as e:
@@ -547,7 +546,7 @@ def janelaGestor():
 
         Button(janela, text="Salvar Serviço", bg="#4CAF50", fg="white", font=("Verdana", 10),
                command=salvar_servico).pack(pady=20)
-
+        
     def janelaAdicionarProduto():
         janela = Toplevel()
         janela.title("Adicionar Produto")
@@ -575,6 +574,52 @@ def janelaGestor():
 
         Button(janela, text="Salvar Produto", bg="#4CAF50", fg="white", font=("Verdana", 10),
                command=salvar_produto).pack(pady=20)
+
+
+    def janelaAdicionarEstoque():
+        janela = Toplevel()
+        janela.title("Adicionar Estoque")
+        janela.geometry("350x250")
+        janela.configure(background=co0)
+        janela.resizable(False, False)
+
+        Label(janela, text="Tipo de Produto:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(20, 0))
+        entrada_tipo = Entry(janela, font=("Verdana", 10))
+        entrada_tipo.pack(padx=20, fill=X)
+
+        Label(janela, text="Quantidade:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        entrada_quantidade = Entry(janela, font=("Verdana", 10))
+        entrada_quantidade.pack(padx=20, fill=X)
+
+        Label(janela, text="Produto:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        produtos = listarProdutos()
+        nomes = [p[1] for p in produtos]
+        produto_var = StringVar()
+        combo_produto = ttk.Combobox(janela, textvariable=produto_var, values=nomes, font=("Verdana", 10), state="readonly")
+        combo_produto.pack(padx=20, fill=X)
+
+        def salvar_estoque():
+            tipo = entrada_tipo.get()
+            qtd = entrada_quantidade.get()
+            nome_produto = produto_var.get()
+
+            if not (tipo and qtd and nome_produto):
+                messagebox.showwarning("Aviso", "Preencha todos os campos!")
+                return
+
+            try:
+                idProduto = [p[0] for p in produtos if p[1] == nome_produto][0]
+                inserirEstoque(idProduto, tipo, int(qtd))
+                messagebox.showinfo("Sucesso", "Estoque adicionado com sucesso!")
+                janela.destroy()
+                carregar_dados()
+            except Exception as e:
+                messagebox.showerror("Erro", f"Erro ao salvar estoque: {e}")
+
+        Button(janela, text="Salvar Estoque", bg="#4CAF50", fg="white", font=("Verdana", 10),
+               command=salvar_estoque).pack(pady=20)
+
+
 
     def janelaAdicionarCompra():
         janela = Toplevel()
@@ -605,7 +650,7 @@ def janelaGestor():
         combo_pessoa = ttk.Combobox(janela, textvariable=pessoa_var, values=nomes, font=("Verdana", 10), state="readonly")
         combo_pessoa.pack(padx=20, fill=X)
 
-        def salvar_compra():
+        def salvarCompra():
             valor = entrada_valor.get()
             produtos = entrada_produtos.get()
             data = entrada_data.get()
@@ -626,8 +671,76 @@ def janelaGestor():
                 messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
 
         Button(janela, text="Salvar Compra", bg="#4CAF50", fg="white", font=("Verdana", 10),
-               command=salvar_compra).pack(pady=20)
+               command=salvarCompra).pack(pady=20)
     
+    def registrar_pagamento_interface(id_servico, valor_parcial):
+        resultado = registrarPagamentoParcial(id_servico, valor_parcial)
+
+        if resultado["status"] == "sucesso":
+            messagebox.showinfo("Sucesso", resultado["mensagem"])
+        else:
+            messagebox.showerror("Erro", resultado["mensagem"])
+
+    def abrir_detalhes_servico(event, tabela):
+        item_selecionado = tabela.selection()
+        if not item_selecionado:
+            return
+
+        valores = tabela.item(item_selecionado)["values"]
+        id_servico = valores[0]
+
+        janela = Toplevel()
+        janela.title("Detalhes do Serviço")
+        janela.geometry("500x400")
+
+        Label(janela, text=f"ID: {valores[0]}", font=("Verdana", 10)).pack(pady=2)
+        Label(janela, text=f"Nome: {valores[1]}", font=("Verdana", 10)).pack(pady=2)
+        Label(janela, text=f"Objetivo: {valores[2]}", font=("Verdana", 10)).pack(pady=2)
+        Label(janela, text=f"Valor atual: R$ {float(valores[3]):.2f}", font=("Verdana", 10)).pack(pady=2)
+        Label(janela, text=f"Início: {valores[4]}", font=("Verdana", 10)).pack(pady=2)
+        Label(janela, text=f"Fim: {valores[5]}", font=("Verdana", 10)).pack(pady=2)
+
+        Label(janela, text="Histórico de Pagamentos:", font=("Verdana", 10, "bold")).pack(pady=5)
+
+        tree_hist = ttk.Treeview(janela, columns=("valor", "data"), show="headings")
+        tree_hist.heading("valor", text="Valor Pago")
+        tree_hist.heading("data", text="Data")
+        tree_hist.column("valor", anchor="center", width=100)
+        tree_hist.column("data", anchor="center", width=200)
+        tree_hist.pack(pady=5, fill="x", padx=10)
+
+        # Estou tendo problema com isso
+        conn = sqlite3.connect('dados.db')
+        cursor = conn.cursor()
+        cursor.execute("SELECT valor_pago, data_pagamento FROM HistoricoPagamento WHERE idServico = ?", (id_servico,))
+        historico = cursor.fetchall()
+        conn.close()
+
+        for valor, data in historico:
+            tree_hist.insert("", "end", values=(f"R$ {valor:.2f}", data))
+
+        # Campo e botão para novo pagamento parcial
+        frame_pagamento = Frame(janela)
+        frame_pagamento.pack(pady=10)
+        Label(frame_pagamento, text="Valor parcial: R$", font=("Verdana", 10)).pack(side="left")
+        entry_valor = Entry(frame_pagamento, width=10)
+        entry_valor.pack(side="left", padx=5)
+
+        def registrar_pagamento():
+            try:
+                valor_parcial = float(entry_valor.get())
+                if valor_parcial <= 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("Erro", "Insira um valor válido e maior que zero.")
+                return
+
+            registrar_pagamento_interface(id_servico, valor_parcial)
+            janela.destroy()
+
+        Button(janela, text="Registrar Pagamento", command=registrar_pagamento, bg="#4CAF50", fg="white").pack(pady=5)
+
+
     janelaGestao = Toplevel()
     janelaGestao.title("Gestor de Serviços")
     janelaGestao.geometry("1000x700")
@@ -660,14 +773,11 @@ def janelaGestor():
     notebook.add(frameEstoque, text="Estoque")
     notebook.add(frameCompras, text="Compras")
 
-    # Introdução na aba Serviços Ativos
-    Label(frameAtivos, text="Nesta aba, você pode acompanhar os serviços em andamento.\nClique no botão abaixo para adicionar um novo serviço.",
-          bg=co8, fg=co1, font=("Verdana", 10)).pack(pady=(10, 5))
-
     # Tabelas
     colunaServico = ["id", "nome", "objetivo", "valor", "data_inicio", "data_fim"]
     tabelaAtivos = ttk.Treeview(frameAtivos, columns=colunaServico, show="headings")
-    tabelaAtivos.pack(fill=BOTH, expand=True, padx=10, pady=(0, 5))
+    tabelaAtivos.pack(fill=BOTH, expand=True, padx=10, pady=10)
+    tabelaAtivos.bind("<Double-1>", lambda event: abrir_detalhes_servico(event, tabelaAtivos))
 
     for col in colunaServico:
         tabelaAtivos.heading(col, text=col.upper())
@@ -712,6 +822,9 @@ def janelaGestor():
     largura_colunas_estoque = [25, 150, 45, 25]
     for col, largura in zip(colunaEstoque, largura_colunas_estoque):
         tabelaEstoque.column(col, width=largura, anchor="center")
+
+    Button(frameEstoque, text="Adicionar Estoque", font=("Verdana", 10),
+           bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarEstoque).pack(pady=10)
 
     tabelaCompras = ttk.Treeview(frameCompras, columns=["id", "valor", "produtos", "data", "idPessoa", "nome", "tipo"], show="headings")
     tabelaCompras.pack(fill=BOTH, expand=True, padx=10, pady=(10, 5))
