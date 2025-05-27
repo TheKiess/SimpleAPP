@@ -34,6 +34,17 @@ with con:
             FOREIGN KEY (idProduto) REFERENCES Produto(id)
         )
     """)
+    
+    # MOVIMENTAÇÃO DO ESTOQUE
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS MovimentacaoEstoque (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            idEstoque INTEGER,
+            quantidade_movimentada INTEGER,
+            data_movimentacao DATE,
+            FOREIGN KEY (idEstoque) REFERENCES Estoque(id)
+        )
+    """)
 
     # TABELA VENDA
     cur.execute("""
@@ -59,19 +70,6 @@ with con:
             valor_final REAL,
             idPessoa INTEGER,
             FOREIGN KEY (idPessoa) REFERENCES Pessoa(id)
-        )
-    """)
-
-    # TABELA DO PRODUTO COM SERVIÇO
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS Utiliza (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            idProduto INTEGER,
-            idServico INTEGER,
-            produtos_usados TEXT,
-            quantidade INTEGER,
-            FOREIGN KEY (idProduto) REFERENCES Produto(id),
-            FOREIGN KEY (idServico) REFERENCES Servico(id)
         )
     """)
 

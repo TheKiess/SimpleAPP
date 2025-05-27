@@ -57,13 +57,59 @@ def inserirEstoque(idProduto, tipo_produto, quantidade):
 def listarEstoque():
     with con:
         cur = con.cursor()
-        cur.execute("SELECT * FROM Estoque")
+        cur.execute("""
+            SELECT 
+                e.id, 
+                p.nome, 
+                e.tipo_produto, 
+                e.quantidade 
+            FROM Estoque e
+            JOIN Produto p ON e.idProduto = p.id
+        """)
         return cur.fetchall()
 
 def atualizarEstoque(idEstoque, quantidade):
     with con:
         cur = con.cursor()
         cur.execute("UPDATE Estoque SET quantidade = ? WHERE id = ?", (quantidade, idEstoque))
+
+
+################ MOVIMENTAÇÃO DE PAGAMENTO ################
+
+def listarMovimentacoesPorEstoque(idEstoque):
+    with con:
+        cur = con.cursor()
+        cur.execute("""
+            SELECT 
+                me.quantidade_movimentada,
+                me.data_movimentacao,
+                p.nome,
+                e.tipo_produto
+            FROM MovimentacaoEstoque me
+            JOIN Estoque e ON me.idEstoque = e.id
+            JOIN Produto p ON e.idProduto = p.id
+            WHERE me.idEstoque = ?
+            ORDER BY me.data_movimentacao DESC
+        """, (idEstoque,))
+        return cur.fetchall()
+    
+def listarMovimentacoesPorEstoque(idEstoque):
+    with con:
+        cur = con.cursor()
+        cur.execute("""
+            SELECT 
+                m.id,
+                m.quantidade_movimentada,
+                m.data_movimentacao,
+                p.nome,
+                e.tipo_produto
+            FROM MovimentacaoEstoque m
+            JOIN Estoque e ON m.idEstoque = e.id
+            JOIN Produto p ON e.idProduto = p.id
+            WHERE m.idEstoque = ?
+            ORDER BY m.data_movimentacao DESC
+        """, (idEstoque,))
+        return cur.fetchall()
 
 ################ TABELA SERVICO ################
 
@@ -154,22 +200,6 @@ def deletarServico(idServico):
         cur = con.cursor()
         cur.execute("DELETE FROM Servico WHERE id = ?", (idServico,))
 
-################ TABELA UTILIZA ################
-
-def vincularProdutoAoServico(idProduto, idServico, produtos_usados, quantidade):
-    with con:
-        cur = con.cursor()
-        cur.execute("""
-            INSERT INTO Utiliza (idProduto, idServico, produtos_usados, quantidade)
-            VALUES (?, ?, ?, ?)
-        """, (idProduto, idServico, produtos_usados, quantidade))
-
-def listarProdutosPorServico():
-    with con:
-        cur = con.cursor()
-        cur.execute("SELECT * FROM Utiliza")
-        return cur.fetchall()
-
 ################ TABELA VENDA ################
 
 def inserirVenda(venda):
@@ -236,6 +266,12 @@ def registrarPagamentoParcial(id_servico, valor_parcial):
     finally:
         conexao.close()
 
+
+################ MOVIMENTAÇÃO DE PAGAMENTO ################
+
+
+
+
 ################ COMANDO  ################
 
 def obterValores():
@@ -259,7 +295,7 @@ def obterValores():
             data,
             nome,
             "Saída",
-            f"Venda: {produtos}",
+            f"Compra: {produtos}",
             valor
         ))
 

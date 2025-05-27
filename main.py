@@ -24,8 +24,6 @@ co7 = "#15d100"  # verde
 co8 = "#263238"  # Verde musgo escuro
 co9 = "#FF0000" # Vermelho
 
-
-
 ################# TELA INICIAL APÓS LOGIN ###############
 
 def janelaPrincipal():
@@ -492,11 +490,11 @@ def janelaGestor():
 
         Label(janela, text="Cadastrar Novo Serviço", bg=co0, fg=co1, font=("Verdana", 14)).pack(pady=10)
 
-        Label(janela, text="Objetivo:", bg=co0, anchor=W).pack(fill=X, padx=20)
+        Label(janela, text="Descrição do Serviço:", bg=co0, anchor=W).pack(fill=X, padx=20)
         entrada_objetivo = Entry(janela, font=("Verdana", 10))
         entrada_objetivo.pack(padx=20, fill=X)
 
-        Label(janela, text="Valor Final (R$):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        Label(janela, text="Valor Cobrado (R$):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
         entrada_valor = Entry(janela, font=("Verdana", 10))
         entrada_valor.pack(padx=20, fill=X)
 
@@ -583,7 +581,7 @@ def janelaGestor():
         janela.configure(background=co0)
         janela.resizable(False, False)
 
-        Label(janela, text="Tipo de Produto:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(20, 0))
+        Label(janela, text="Material/Cor:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(20, 0))
         entrada_tipo = Entry(janela, font=("Verdana", 10))
         entrada_tipo.pack(padx=20, fill=X)
 
@@ -634,7 +632,7 @@ def janelaGestor():
         entrada_valor = Entry(janela, font=("Verdana", 10))
         entrada_valor.pack(padx=20, fill=X)
 
-        Label(janela, text="Produtos:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        Label(janela, text="Produtos utilizados:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
         entrada_produtos = Entry(janela, font=("Verdana", 10))
         entrada_produtos.pack(padx=20, fill=X)
 
@@ -643,7 +641,7 @@ def janelaGestor():
         entrada_data.pack(padx=20, fill=X)
         entrada_data.bind("<KeyRelease>", formatar_data)
 
-        Label(janela, text="Pessoa compradora:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        Label(janela, text="Pessoa que venderá:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
         pessoas = [p for p in listarPessoas() if p[4] in ("vendedor", "ambos")]
         nomes = [p[1] for p in pessoas]
         pessoa_var = StringVar()
@@ -681,7 +679,7 @@ def janelaGestor():
         else:
             messagebox.showerror("Erro", resultado["mensagem"])
 
-    def abrir_detalhes_servico(event, tabela):
+    def abrirDetalhesServico(event, tabela):
         item_selecionado = tabela.selection()
         if not item_selecionado:
             return
@@ -692,6 +690,7 @@ def janelaGestor():
         janela = Toplevel()
         janela.title("Detalhes do Serviço")
         janela.geometry("500x400")
+        janela.configure(background=co0)
 
         Label(janela, text=f"ID: {valores[0]}", font=("Verdana", 10)).pack(pady=2)
         Label(janela, text=f"Nome: {valores[1]}", font=("Verdana", 10)).pack(pady=2)
@@ -740,6 +739,66 @@ def janelaGestor():
 
         Button(janela, text="Registrar Pagamento", command=registrar_pagamento, bg="#4CAF50", fg="white").pack(pady=5)
 
+    def abrirDetalhesCompra(event, tabela):
+        item_selecionado = tabela.selection()
+        if not item_selecionado:
+            return
+
+        valores = tabela.item(item_selecionado)["values"]
+        id_venda, valor_total, produtos, data, id_pessoa, nome_pessoa, tipo_pessoa = valores
+
+        janela = Toplevel()
+        janela.title("Detalhes da Compra")
+        janela.geometry("500x300")
+        janela.configure(background=co0)
+
+        Label(janela, text=f"ID: {id_venda}", font=("Verdana", 10)).pack(pady=5)
+        Label(janela, text=f"Valor Total: R$ {float(valor_total):.2f}", font=("Verdana", 10)).pack(pady=5)
+        Label(janela, text=f"Produtos: {produtos}", font=("Verdana", 10), wraplength=450, justify="left").pack(pady=5)
+        Label(janela, text=f"Data: {data}", font=("Verdana", 10)).pack(pady=5)
+        Label(janela, text=f"Pessoa: {nome_pessoa} ({tipo_pessoa})", font=("Verdana", 10)).pack(pady=5)
+
+
+
+    def abrirDetalhesEstoque(event, tabela):
+        item_selecionado = tabela.selection()
+        if not item_selecionado:
+            return
+
+        valores = tabela.item(item_selecionado)["values"]
+        id_estoque, nome_produto, tipo, quantidade = valores
+
+        janela = Toplevel()
+        janela.title("Detalhes do Estoque")
+        janela.geometry("600x400")
+        janela.configure(background=co0)
+
+        Label(janela, text=f"ID: {id_estoque}", font=("Verdana", 10)).pack(pady=5)
+        Label(janela, text=f"Produto: {nome_produto}", font=("Verdana", 10)).pack(pady=5)
+        Label(janela, text=f"Tipo: {tipo}", font=("Verdana", 10)).pack(pady=5)
+        Label(janela, text=f"Quantidade Atual: {quantidade}", font=("Verdana", 10)).pack(pady=5)
+
+        # Histórico de movimentações
+        Label(janela, text="Histórico de Movimentações:", font=("Verdana", 10, "bold")).pack(pady=10)
+
+        tabela_mov = ttk.Treeview(janela, columns=("produto", "tipo", "quantidade", "data"), show="headings")
+        tabela_mov.heading("produto", text="Produto")
+        tabela_mov.heading("tipo", text="Tipo")
+        tabela_mov.heading("quantidade", text="Quantidade")
+        tabela_mov.heading("data", text="Data")
+
+        tabela_mov.column("produto", width=150)
+        tabela_mov.column("tipo", width=100)
+        tabela_mov.column("quantidade", width=100)
+        tabela_mov.column("data", width=150)
+
+        tabela_mov.pack(padx=10, pady=5, fill="both", expand=True)
+
+        movimentacoes = listarMovimentacoesPorEstoque(id_estoque)
+        for mov in movimentacoes:
+            quantidade_mov, data_mov, nome_prod, tipo_prod = mov
+            tabela_mov.insert("", "end", values=(nome_prod, tipo_prod, quantidade_mov, data_mov))
+
 
     janelaGestao = Toplevel()
     janelaGestao.title("Gestor de Serviços")
@@ -777,7 +836,7 @@ def janelaGestor():
     colunaServico = ["id", "nome", "objetivo", "valor", "data_inicio", "data_fim"]
     tabelaAtivos = ttk.Treeview(frameAtivos, columns=colunaServico, show="headings")
     tabelaAtivos.pack(fill=BOTH, expand=True, padx=10, pady=10)
-    tabelaAtivos.bind("<Double-1>", lambda event: abrir_detalhes_servico(event, tabelaAtivos))
+    tabelaAtivos.bind("<Double-1>", lambda event: abrirDetalhesServico(event, tabelaAtivos))
 
     for col in colunaServico:
         tabelaAtivos.heading(col, text=col.upper())
@@ -812,10 +871,11 @@ def janelaGestor():
     Button(frameProdutos, text="Adicionar Produto", font=("Verdana", 10),
            bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarProduto).pack(pady=10)
 
-    tabelaEstoque = ttk.Treeview(frameEstoque, columns=["id", "tipo_produto", "quantidade", "idProduto"], show="headings")
+    tabelaEstoque = ttk.Treeview(frameEstoque, columns=["id", "produto", "material/cor", "quantidade"], show="headings")
     tabelaEstoque.pack(fill=BOTH, expand=True, padx=10, pady=10)
+    tabelaEstoque.bind("<Double-1>", lambda event: abrirDetalhesEstoque(event, tabelaEstoque))
 
-    colunaEstoque = ["id", "tipo_produto", "quantidade", "idProduto"]
+    colunaEstoque = ["id", "produto", "material/cor", "quantidade"]
     for col in colunaEstoque:
         tabelaEstoque.heading(col, text=col.upper())
 
@@ -828,6 +888,7 @@ def janelaGestor():
 
     tabelaCompras = ttk.Treeview(frameCompras, columns=["id", "valor", "produtos", "data", "idPessoa", "nome", "tipo"], show="headings")
     tabelaCompras.pack(fill=BOTH, expand=True, padx=10, pady=(10, 5))
+    tabelaCompras.bind("<Double-1>", lambda event: abrirDetalhesCompra(event, tabelaCompras))
 
     colunasCompras = ["id", "valor", "produtos", "data", "idPessoa", "nome", "tipo"]
     for col in colunasCompras:
@@ -887,25 +948,37 @@ def verificarLogin():
     else:
         aviso["text"] = "Usuário ou senha inválidos"
 
-#TELA UTILIZADA NO LOGIN
+
+################# TELA UTILIZADA NO LOGIN
+
 loginJanela = Tk()
 loginJanela.title("Login")
-loginJanela.geometry("300x180")
+loginJanela.geometry("300x200")
 loginJanela.eval('tk::PlaceWindow %s center' % loginJanela.winfo_pathname(loginJanela.winfo_id()))
-loginJanela.configure(bg=co0)
 loginJanela.resizable(FALSE, FALSE)
 
-Label(loginJanela, text="Usuário:", bg=co0, fg=co1).pack(pady=5)
-entradaUsuario = Entry(loginJanela)
-entradaUsuario.pack()
+# Fundo com imagem
+img = Image.open("images/floral.jpg")
+img = img.resize((300, 200))
+backgroundImage = ImageTk.PhotoImage(img)
+background_label = Label(loginJanela, image=backgroundImage)
+background_label.place(x=0, y=0, relwidth=1, relheight=1)
 
-Label(loginJanela, text="Senha:", bg=co0, fg=co1).pack(pady=5)
-entradaSenha = Entry(loginJanela, show="*")
-entradaSenha.pack()
+frame = Frame(loginJanela, bg="#ffffff", bd=0)
+frame.place(relx=0.5, rely=0.5, anchor="center")
 
-aviso = Label(loginJanela, text="", bg=co0, fg="red")
-aviso.pack()
+Label(frame, text="Usuário:", font=("Verdana", 10, "bold"), bg= "#ffffff", fg= "#000000").grid(row=0, column=0, sticky="w", padx=10, pady=(10, 2))
+entradaUsuario = Entry(frame, bg='grey')
+entradaUsuario.grid(row=1, column=0, padx=10)
 
-ttk.Button(loginJanela, text="Entrar", command=verificarLogin).pack(pady=10)
+Label(frame, text="Senha:", font=("Verdana", 10, "bold"), bg= "#ffffff", fg= "#000000").grid(row=2, column=0, sticky="w", padx=10, pady=(10, 2))
+entradaSenha = Entry(frame, show="*", bg='grey')
+entradaSenha.grid(row=3, column=0, padx=10)
+
+aviso = Label(frame, text="", fg="red", bg="#ffffff", font=("Verdana", 8))
+aviso.grid(row=4, column=0, pady=(5, 0))
+
+ttk.Style().configure("TButton", font=("Verdana", 9))
+ttk.Button(frame, text="Entrar", command=verificarLogin).grid(row=5, column=0, pady=10)
 
 loginJanela.mainloop()
