@@ -2,6 +2,7 @@ import sqlite3
 import sqlite3 as lite
 import datetime
 
+
 con = lite.connect("dados.db")
 
 ################ TABELA PESSOA ################
@@ -74,7 +75,7 @@ def atualizarEstoque(idEstoque, quantidade):
         cur.execute("UPDATE Estoque SET quantidade = ? WHERE id = ?", (quantidade, idEstoque))
 
 
-################ MOVIMENTAÇÃO DE PAGAMENTO ################
+################ MOVIMENTAÇÃO DE ESTOQUE ################
 
 def listarMovimentacoesPorEstoque(idEstoque):
     with con:
@@ -229,13 +230,20 @@ def deletarVenda(idVenda):
         cur = con.cursor()
         cur.execute("DELETE FROM Venda WHERE id = ?", (idVenda,))
 
+
 ################ TABELA HISTORICO PAGAMENTO  ################
+
 def registrarPagamentoParcial(id_servico, valor_parcial):
-    conexao = sqlite3.connect('dados.db')
-    cursor = conexao.cursor()
+
+    if valor_parcial <= 0:
+        return {"status": "erro", "mensagem": "O valor parcial deve ser maior que zero."}
 
     try:
-        cursor.execute("SELECT valor FROM Servico WHERE id = ?", (id_servico,))
+        conexao = sqlite3.connect('dados.db')
+        cursor = conexao.cursor()
+
+        # Busca o valor atual do serviço
+        cursor.execute("SELECT valor_final FROM Servico WHERE id = ?", (id_servico,))
         resultado = cursor.fetchone()
 
         if resultado is None:
@@ -245,19 +253,25 @@ def registrarPagamentoParcial(id_servico, valor_parcial):
         novo_valor = valor_atual - valor_parcial
 
         if novo_valor < 0:
-            return {"status": "erro", "mensagem": "O valor parcial excede o valor restante do serviço."}
+            return {
+                "status": "erro",
+                "mensagem": f"Pagamento excede o valor restante (R$ {valor_atual:.2f})."
+            }
 
-        cursor.execute("UPDATE Servico SET valor = ? WHERE id = ?", (novo_valor, id_servico))
+        cursor.execute("UPDATE Servico SET valor_final = ? WHERE id = ?", (novo_valor, id_servico))
 
-        data_pagamento = datetime.now().strftime('%d-%m-%Y %H:%M:%S')
-
+        data_pagamento = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+        
         cursor.execute("""
             INSERT INTO HistoricoPagamento (idServico, valor_pago, data_pagamento)
             VALUES (?, ?, ?)
         """, (id_servico, valor_parcial, data_pagamento))
 
         conexao.commit()
-        return {"status": "sucesso", "mensagem": "Pagamento parcial registrado com sucesso!"}
+        return {
+            "status": "sucesso",
+            "mensagem": f"Pagamento de R$ {valor_parcial:.2f} registrado com sucesso! Valor restante: R$ {novo_valor:.2f}"
+        }
 
     except sqlite3.Error as e:
         conexao.rollback()
@@ -265,11 +279,6 @@ def registrarPagamentoParcial(id_servico, valor_parcial):
 
     finally:
         conexao.close()
-
-
-################ MOVIMENTAÇÃO DE PAGAMENTO ################
-
-
 
 
 ################ COMANDO  ################

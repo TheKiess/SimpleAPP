@@ -128,6 +128,7 @@ def janelaPrincipal():
 
 
 def janelaPessoas():
+
     def formatarCelular(event):
         widget = event.widget
         texto = widget.get()
@@ -671,36 +672,47 @@ def janelaGestor():
         Button(janela, text="Salvar Compra", bg="#4CAF50", fg="white", font=("Verdana", 10),
                command=salvarCompra).pack(pady=20)
     
-    def registrar_pagamento_interface(id_servico, valor_parcial):
-        resultado = registrarPagamentoParcial(id_servico, valor_parcial)
-
-        if resultado["status"] == "sucesso":
-            messagebox.showinfo("Sucesso", resultado["mensagem"])
-        else:
-            messagebox.showerror("Erro", resultado["mensagem"])
-
     def abrirDetalhesServico(event, tabela):
+
+        def carregar_historico():
+            tree_hist.delete(*tree_hist.get_children())
+            conn = sqlite3.connect('dados.db')
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, valor_pago, data_pagamento FROM HistoricoPagamento WHERE idServico = ?", (idServico,))
+            historico = cursor.fetchall()
+            conn.close()
+            for id_pag, valor_pg, data_pg in historico:
+                tree_hist.insert("", "end", iid=id_pag, values=(f"R$ {valor_pg:.2f}", data_pg))
+
         item_selecionado = tabela.selection()
         if not item_selecionado:
             return
 
         valores = tabela.item(item_selecionado)["values"]
-        id_servico = valores[0]
+        idServico, nome, objetivo, valor, inicio, fim = valores
 
         janela = Toplevel()
         janela.title("Detalhes do Serviço")
-        janela.geometry("500x400")
+        janela.geometry("550x500")
         janela.configure(background=co0)
 
-        Label(janela, text=f"ID: {valores[0]}", font=("Verdana", 10)).pack(pady=2)
-        Label(janela, text=f"Nome: {valores[1]}", font=("Verdana", 10)).pack(pady=2)
-        Label(janela, text=f"Objetivo: {valores[2]}", font=("Verdana", 10)).pack(pady=2)
-        Label(janela, text=f"Valor atual: R$ {float(valores[3]):.2f}", font=("Verdana", 10)).pack(pady=2)
-        Label(janela, text=f"Início: {valores[4]}", font=("Verdana", 10)).pack(pady=2)
-        Label(janela, text=f"Fim: {valores[5]}", font=("Verdana", 10)).pack(pady=2)
+        frame_topo = Frame(janela, bg=co0)
+        frame_topo.pack(pady=10)
 
-        Label(janela, text="Histórico de Pagamentos:", font=("Verdana", 10, "bold")).pack(pady=5)
+        frame_esquerda = Frame(frame_topo, bg=co0)
+        frame_esquerda.pack(side="left", padx=20)
+        Label(frame_esquerda, text=f"ID: {idServico}", font=("Verdana", 10), fg=co1, bg=co0).pack(pady=2)
+        Label(frame_esquerda, text=f"Descrição: {objetivo}", font=("Verdana", 10), fg=co1, bg=co0).pack(pady=2)
+        Label(frame_esquerda, text=f"Início: {inicio}", font=("Verdana", 10), fg=co1, bg=co0).pack(pady=2)
 
+        frame_direita = Frame(frame_topo, bg=co0)
+        frame_direita.pack(side="left", padx=20)
+        Label(frame_direita, text=f"Nome: {nome}", font=("Verdana", 10), fg=co1, bg=co0).pack(pady=2)
+        label_valor = Label(frame_direita, text=f"Valor atual: R$ {float(valor):.2f}", fg=co7, font=("Verdana", 10), bg=co0)
+        label_valor.pack(pady=2)
+        Label(frame_direita, text=f"Fim: {fim}", font=("Verdana", 10), fg=co1, bg=co0).pack(pady=2)
+
+        Label(janela, text="Histórico de Pagamentos:", font=("Verdana", 10, "bold"), bg=co0).pack(pady=5)
         tree_hist = ttk.Treeview(janela, columns=("valor", "data"), show="headings")
         tree_hist.heading("valor", text="Valor Pago")
         tree_hist.heading("data", text="Data")
@@ -708,21 +720,13 @@ def janelaGestor():
         tree_hist.column("data", anchor="center", width=200)
         tree_hist.pack(pady=5, fill="x", padx=10)
 
-        # Estou tendo problema com isso
-        conn = sqlite3.connect('dados.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT valor_pago, data_pagamento FROM HistoricoPagamento WHERE idServico = ?", (id_servico,))
-        historico = cursor.fetchall()
-        conn.close()
+        carregar_historico()
 
-        for valor, data in historico:
-            tree_hist.insert("", "end", values=(f"R$ {valor:.2f}", data))
+        frame_botoes = Frame(janela, bg=co0)
+        frame_botoes.pack(pady=10)
 
-        # Campo e botão para novo pagamento parcial
-        frame_pagamento = Frame(janela)
-        frame_pagamento.pack(pady=10)
-        Label(frame_pagamento, text="Valor parcial: R$", font=("Verdana", 10)).pack(side="left")
-        entry_valor = Entry(frame_pagamento, width=10)
+        Label(frame_botoes, text="Valor parcial: R$", font=("Verdana", 10), bg=co0).pack(side="left")
+        entry_valor = Entry(frame_botoes, width=10)
         entry_valor.pack(side="left", padx=5)
 
         def registrar_pagamento():
@@ -734,10 +738,113 @@ def janelaGestor():
                 messagebox.showerror("Erro", "Insira um valor válido e maior que zero.")
                 return
 
-            registrar_pagamento_interface(id_servico, valor_parcial)
-            janela.destroy()
+            resultado = registrarPagamentoParcial(idServico, valor_parcial)
+            if resultado["status"] == "sucesso":
+                messagebox.showinfo("Sucesso", resultado["mensagem"])
+                carregar_historico()
 
-        Button(janela, text="Registrar Pagamento", command=registrar_pagamento, bg="#4CAF50", fg="white").pack(pady=5)
+                conn = sqlite3.connect("dados.db")
+                cursor = conn.cursor()
+                cursor.execute("SELECT valor FROM Servico WHERE id = ?", (idServico,))
+                novo_valor = cursor.fetchone()[0]
+                conn.close()
+                label_valor.config(text=f"Valor atual: R$ {novo_valor:.2f}")
+                entry_valor.delete(0, END)
+            else:
+                messagebox.showerror("Erro", resultado["mensagem"])
+
+        def editar_pagamento():
+            item = tree_hist.selection()
+            if not item:
+                messagebox.showwarning("Aviso", "Selecione um pagamento para editar.")
+                return
+
+            id_pagamento = int(item[0])
+            valor_atual, data_atual = tree_hist.item(item, "values")
+
+            janela_editar = Toplevel(janela)
+            janela_editar.title("Editar Pagamento")
+            janela_editar.geometry("300x180")
+            janela_editar.configure(bg=co0)
+
+            Label(janela_editar, text="Valor:", font=("Verdana", 10), bg=co0).pack(pady=5)
+            entry_novo_valor = Entry(janela_editar)
+            entry_novo_valor.insert(0, valor_atual.replace("R$ ", "").replace(",", "."))
+            entry_novo_valor.pack()
+
+            Label(janela_editar, text="Data:", font=("Verdana", 10), bg=co0).pack(pady=5)
+            entry_nova_data = Entry(janela_editar)
+            entry_nova_data.insert(0, data_atual)
+            entry_nova_data.pack()
+
+            def salvar_edicao():
+                try:
+                    novo_valor = float(entry_novo_valor.get())
+                    nova_data = entry_nova_data.get()
+                    datetime.strptime(nova_data, "%d-%m-%Y %H:%M:%S")
+                except ValueError:
+                    messagebox.showerror("Erro", "Dados inválidos. Verifique o valor e a data.")
+                    return
+
+                conn = sqlite3.connect("dados.db")
+                cursor = conn.cursor()
+                try:
+                    cursor.execute("""
+                        UPDATE HistoricoPagamento
+                        SET valor_pago = ?, data_pagamento = ?
+                        WHERE id = ?
+                    """, (novo_valor, nova_data, id_pagamento))
+                    conn.commit()
+                    messagebox.showinfo("Sucesso", "Pagamento atualizado com sucesso.")
+                    carregar_historico()
+                    janela_editar.destroy()
+                except Exception as e:
+                    conn.rollback()
+                    messagebox.showerror("Erro", f"Erro ao atualizar: {str(e)}")
+                finally:
+                    conn.close()
+
+            Button(janela_editar, text="Salvar", command=salvar_edicao, bg="#4CAF50", fg="white").pack(pady=10)
+
+        def finalizar_servico():
+            resposta = messagebox.askyesno("Confirmar", "Deseja realmente finalizar este serviço?")
+            if not resposta:
+                return
+
+            conexao = sqlite3.connect('dados.db')
+            cursor = conexao.cursor()
+            try:
+                cursor.execute("UPDATE Servico SET status = ? WHERE id = ?", ("finalizado", idServico))
+                conexao.commit()
+                messagebox.showinfo("Sucesso", "Serviço finalizado com sucesso.")
+                janela.destroy()
+            except sqlite3.Error as e:
+                conexao.rollback()
+                messagebox.showerror("Erro", f"Erro ao finalizar serviço: {str(e)}")
+            finally:
+                conexao.close()
+
+        Button(frame_botoes, text="Registrar Pagamento", command=registrar_pagamento, bg="#4CAF50", fg="white").pack(side="left", padx=5)
+        Button(frame_botoes, text="Editar Selecionado", command=editar_pagamento).pack(side="left", padx=5)
+        Button(frame_botoes, text="Finalizar Serviço", bg="red", fg="white", command=finalizar_servico).pack(side="left", padx=5)
+
+
+        def registrar_pagamento():
+            try:
+                valor_parcial = float(entry_valor.get())
+                if valor_parcial <= 0:
+                    raise ValueError
+            except ValueError:
+                messagebox.showerror("Erro", "Insira um valor válido e maior que zero.")
+                return
+
+            resultado = registrarPagamentoParcial(idServico, valor_parcial)
+            if resultado["status"] == "sucesso":
+                messagebox.showinfo("Sucesso", resultado["mensagem"])
+                janela.destroy()
+            else:
+                messagebox.showerror("Erro", resultado["mensagem"])
+
 
     def abrirDetalhesCompra(event, tabela):
         item_selecionado = tabela.selection()

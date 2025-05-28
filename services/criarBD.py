@@ -74,6 +74,7 @@ with con:
     """)
 
     # TABELA DO HISTORICO DE PAGAMENTO
+    
     cur.execute("""
         CREATE TABLE IF NOT EXISTS HistoricoPagamento (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
