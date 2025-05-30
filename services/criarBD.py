@@ -84,3 +84,37 @@ with con:
             FOREIGN KEY (idServico) REFERENCES Servico(id)
         )
     """)
+    
+    #TABELA DO HISTORICO DE MOVIMENTAÇÃO COMPRA -> ESTOQUE
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS MovimentacaoCompra (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            idProduto INTEGER,
+            idEstoque INTEGER,
+            idVenda INTEGER,
+            quantidade INTEGER,
+            tipo_movimentacao TEXT, -- 'entrada' ou 'saida'
+            data DATE,
+            FOREIGN KEY (idProduto) REFERENCES Produto(id),
+            FOREIGN KEY (idEstoque) REFERENCES Estoque(id),
+            FOREIGN KEY (idVenda) REFERENCES Venda(id)
+        )
+    """)
+
+    #TABELA DO HISTORICO DE MOVIMENTAÇÃO DO ESTOQUE -> SERVIÇO
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS MovimentacaoEstoqueServico (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            idProduto INTEGER,
+            idEstoque INTEGER,
+            idServico INTEGER,
+            quantidade INTEGER,
+            tipo_movimentacao TEXT, -- 'entrada' ou 'saida'
+            data DATE,
+            FOREIGN KEY (idProduto) REFERENCES Produto(id),
+            FOREIGN KEY (idEstoque) REFERENCES Estoque(id),
+            FOREIGN KEY (idServico) REFERENCES Servico(id)
+        )
+    """)

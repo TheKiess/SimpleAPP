@@ -1,7 +1,7 @@
 import sqlite3
 import sqlite3 as lite
 import datetime
-
+import json
 
 con = lite.connect("dados.db")
 
@@ -111,6 +111,12 @@ def listarMovimentacoesPorEstoque(idEstoque):
             ORDER BY m.data_movimentacao DESC
         """, (idEstoque,))
         return cur.fetchall()
+    
+def buscarEstoquePorProduto(idProduto):
+    with con:
+        cur = con.cursor()
+        cur.execute("SELECT id, quantidade FROM Estoque WHERE idProduto = ?", (idProduto,))
+        return cur.fetchone()  # retorna (idEstoque, quantidade) ou None
 
 ################ TABELA SERVICO ################
 
@@ -280,6 +286,62 @@ def registrarPagamentoParcial(id_servico, valor_parcial):
     finally:
         conexao.close()
 
+################ TABELA MOVIMENTAÇÃO COMPRA  ################
+
+def salvarCompraNoBanco(venda):
+    with con:
+        cur = con.cursor()
+
+        # Isso vai colocar a venda dentro do BD
+        produtos_json = json.dumps(venda["produtos"])
+        cur.execute("""
+            INSERT INTO Venda (valor, produtos, data, idPessoa)
+            VALUES (?, ?, ?, ?)
+        """, (venda["valor"], produtos_json, venda["data"], venda["idPessoa"]))
+        idVenda = cur.lastrowid
+
+        # Cada produto que vir ele terá inserido será colocado e atualizado
+        for prod in venda["produtos"]:
+            idProduto = prod["id"]
+            quantidade = prod["quantidade"]
+
+            cur.execute("""
+                INSERT INTO MovimentacaoCompra (idProduto, idEstoque, idVenda, quantidade, tipo_movimentacao, data)
+                VALUES (?, NULL, ?, ?, 'entrada', ?)
+            """, (idProduto, idVenda, quantidade, venda["data"]))
+
+            estoque = buscarEstoquePorProduto(idProduto)
+            if estoque:
+                idEstoque, qtdAtual = estoque
+                novaQtd = qtdAtual + quantidade
+                atualizarEstoque(idEstoque, novaQtd)
+            else:
+                cur.execute("""
+                    INSERT INTO Estoque (idProduto, quantidade)
+                    VALUES (?, ?)
+                """, (idProduto, quantidade))
+
+def atualizarValorFinal(id_servico, valor_antigo, valor_novo):
+    try:
+        diferenca = valor_antigo - valor_novo
+
+        conn = sqlite3.connect("dados.db")
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            UPDATE Servico
+            SET valor_final = valor_final + ?
+            WHERE id = ?
+        """, (diferenca, id_servico))
+
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Erro ao ajustar valor_final: {e}")
+        return False
+
+################ TABELA MOVIMENTAÇÃO SERVIÇO  ################
 
 ################ COMANDO  ################
 

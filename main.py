@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import datetime
 from services.view import *
 from services.view import tarefaJanelaPrincipal, listarServicos
+import json
 
 ################# CORES!!! ###############
 
@@ -594,8 +595,8 @@ def janelaGestor():
         produtos = listarProdutos()
         nomes = [p[1] for p in produtos]
         produto_var = StringVar()
-        combo_produto = ttk.Combobox(janela, textvariable=produto_var, values=nomes, font=("Verdana", 10), state="readonly")
-        combo_produto.pack(padx=20, fill=X)
+        comboProduto = ttk.Combobox(janela, textvariable=produto_var, values=nomes, font=("Verdana", 10), state="readonly")
+        comboProduto.pack(padx=20, fill=X)
 
         def salvar_estoque():
             tipo = entrada_tipo.get()
@@ -623,7 +624,7 @@ def janelaGestor():
     def janelaAdicionarCompra():
         janela = Toplevel()
         janela.title("Adicionar Compra")
-        janela.geometry("400x350")
+        janela.geometry("400x550")
         janela.configure(background=co0)
         janela.resizable(False, False)
 
@@ -633,9 +634,50 @@ def janelaGestor():
         entrada_valor = Entry(janela, font=("Verdana", 10))
         entrada_valor.pack(padx=20, fill=X)
 
-        Label(janela, text="Produtos utilizados:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
-        entrada_produtos = Entry(janela, font=("Verdana", 10))
-        entrada_produtos.pack(padx=20, fill=X)
+        frame_produto = Frame(janela, bg=co0)
+        frame_produto.pack(padx=20, pady=10, fill=X)
+
+        Label(frame_produto, text="Produto:", bg=co0).grid(row=0, column=0, sticky=W)
+        produtos = listarProdutos()
+        nomes_produtos = [p[1] for p in produtos]
+        produtoVar = StringVar()
+        comboProduto = ttk.Combobox(frame_produto, textvariable=produtoVar, values=nomes_produtos, font=("Verdana", 10), state="readonly", width=15)
+        comboProduto.grid(row=1, column=0, padx=(0, 5))
+
+        Label(frame_produto, text="Quantidade:", bg=co0).grid(row=0, column=1, sticky=W)
+        entrada_quantidade = Entry(frame_produto, font=("Verdana", 10), width=5)
+        entrada_quantidade.grid(row=1, column=1, padx=(0, 5))
+
+        def adicionarProduto():
+            nome = produtoVar.get()
+            qtd = entrada_quantidade.get()
+            if not (nome and qtd.isdigit() and int(qtd) > 0):
+                messagebox.showwarning("Aviso", "Selecione um produto e insira uma quantidade válida!")
+                return
+            lista_produtos.insert(END, f"{nome} - {qtd}")
+            produtos_adicionados.append({
+                "id": [p[0] for p in produtos if p[1] == nome][0],
+                "nome": nome,
+                "quantidade": int(qtd)
+            })
+            entrada_quantidade.delete(0, END)
+            produtoVar.set("")
+
+        Button(frame_produto, text="Adicionar", bg="#4CAF50", fg="white", font=("Verdana", 9),
+            command=adicionarProduto).grid(row=1, column=2, padx=(5, 0))
+
+        Label(janela, text="Produtos Adicionados:", bg=co0, anchor=W).pack(fill=X, padx=20)
+        lista_produtos = Listbox(janela, font=("Verdana", 10), height=6)
+        lista_produtos.pack(padx=20, fill=X)
+
+        Button(janela, text="Remover Produto Selecionado", bg="#d9534f", fg="white", font=("Verdana", 10),
+            command=lambda: removerProduto()).pack(pady=5)
+
+        def removerProduto():
+            idx = lista_produtos.curselection()
+            if idx:
+                lista_produtos.delete(idx)
+                del produtos_adicionados[idx[0]]
 
         Label(janela, text="Data (DD-MM-AAAA):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
         entrada_data = Entry(janela, font=("Verdana", 10))
@@ -644,25 +686,31 @@ def janelaGestor():
 
         Label(janela, text="Pessoa que venderá:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
         pessoas = [p for p in listarPessoas() if p[4] in ("vendedor", "ambos")]
-        nomes = [p[1] for p in pessoas]
-        pessoa_var = StringVar()
-        combo_pessoa = ttk.Combobox(janela, textvariable=pessoa_var, values=nomes, font=("Verdana", 10), state="readonly")
-        combo_pessoa.pack(padx=20, fill=X)
+        nomes_pessoas = [p[1] for p in pessoas]
+        pessoaVar = StringVar()
+        comboPessoa = ttk.Combobox(janela, textvariable=pessoaVar, values=nomes_pessoas, font=("Verdana", 10), state="readonly")
+        comboPessoa.pack(padx=20, fill=X)
+
+        produtos_adicionados = []
 
         def salvarCompra():
             valor = entrada_valor.get()
-            produtos = entrada_produtos.get()
             data = entrada_data.get()
-            nome_pessoa = pessoa_var.get()
+            nome_pessoa = pessoaVar.get()
 
-            if not (valor and produtos and data and nome_pessoa):
-                messagebox.showwarning("Aviso", "Preencha todos os campos!")
+            if not (valor and data and nome_pessoa and produtos_adicionados):
+                messagebox.showwarning("Aviso", "Preencha todos os campos e adicione pelo menos um produto!")
                 return
 
             try:
                 idPessoa = [p[0] for p in pessoas if p[1] == nome_pessoa][0]
-                venda = (float(valor), produtos, data, idPessoa)
-                inserirVenda(venda)
+                venda = {
+                    "valor": float(valor),
+                    "produtos": produtos_adicionados,
+                    "data": data,
+                    "idPessoa": idPessoa
+                }
+                salvarCompraNoBanco(venda)
                 messagebox.showinfo("Sucesso", "Compra registrada com sucesso!")
                 janela.destroy()
                 carregar_dados()
@@ -670,7 +718,7 @@ def janelaGestor():
                 messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
 
         Button(janela, text="Salvar Compra", bg="#4CAF50", fg="white", font=("Verdana", 10),
-               command=salvarCompra).pack(pady=20)
+            command=salvarCompra).pack(pady=20)
     
     def abrirDetalhesServico(event, tabela):
 
@@ -729,7 +777,7 @@ def janelaGestor():
         entry_valor = Entry(frame_botoes, width=10)
         entry_valor.pack(side="left", padx=5)
 
-        def registrar_pagamento():
+        def registrarPagamento():
             try:
                 valor_parcial = float(entry_valor.get())
                 if valor_parcial <= 0:
@@ -745,7 +793,7 @@ def janelaGestor():
 
                 conn = sqlite3.connect("dados.db")
                 cursor = conn.cursor()
-                cursor.execute("SELECT valor FROM Servico WHERE id = ?", (idServico,))
+                cursor.execute("SELECT valor_final FROM Servico WHERE id = ?", (idServico,))
                 novo_valor = cursor.fetchone()[0]
                 conn.close()
                 label_valor.config(text=f"Valor atual: R$ {novo_valor:.2f}")
@@ -753,7 +801,7 @@ def janelaGestor():
             else:
                 messagebox.showerror("Erro", resultado["mensagem"])
 
-        def editar_pagamento():
+        def editarPagamento():
             item = tree_hist.selection()
             if not item:
                 messagebox.showwarning("Aviso", "Selecione um pagamento para editar.")
@@ -772,41 +820,45 @@ def janelaGestor():
             entry_novo_valor.insert(0, valor_atual.replace("R$ ", "").replace(",", "."))
             entry_novo_valor.pack()
 
-            Label(janela_editar, text="Data:", font=("Verdana", 10), bg=co0).pack(pady=5)
-            entry_nova_data = Entry(janela_editar)
-            entry_nova_data.insert(0, data_atual)
-            entry_nova_data.pack()
-
-            def salvar_edicao():
+            def salvarEdicao():
                 try:
                     novo_valor = float(entry_novo_valor.get())
-                    nova_data = entry_nova_data.get()
-                    datetime.strptime(nova_data, "%d-%m-%Y %H:%M:%S")
                 except ValueError:
-                    messagebox.showerror("Erro", "Dados inválidos. Verifique o valor e a data.")
+                    messagebox.showerror("Erro", "Insira um valor numérico válido.")
                     return
 
-                conn = sqlite3.connect("dados.db")
-                cursor = conn.cursor()
                 try:
+                    valor_antigo = float(valor_atual.replace("R$ ", "").replace(",", "."))
+                    data_atual = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+
+                    conn = sqlite3.connect("dados.db")
+                    cursor = conn.cursor()
+
                     cursor.execute("""
                         UPDATE HistoricoPagamento
                         SET valor_pago = ?, data_pagamento = ?
                         WHERE id = ?
-                    """, (novo_valor, nova_data, id_pagamento))
+                    """, (novo_valor, data_atual, id_pagamento))
                     conn.commit()
-                    messagebox.showinfo("Sucesso", "Pagamento atualizado com sucesso.")
-                    carregar_historico()
-                    janela_editar.destroy()
-                except Exception as e:
-                    conn.rollback()
-                    messagebox.showerror("Erro", f"Erro ao atualizar: {str(e)}")
-                finally:
                     conn.close()
 
-            Button(janela_editar, text="Salvar", command=salvar_edicao, bg="#4CAF50", fg="white").pack(pady=10)
+                    sucesso = atualizarValorFinal(idServico, valor_antigo, novo_valor)
 
-        def finalizar_servico():
+                    if sucesso:
+                        novo_total = float(label_valor.cget("text").split("R$ ")[1].replace(",", ".")) + (valor_antigo - novo_valor)
+                        label_valor.config(text=f"Valor atual: R$ {novo_total:.2f}")
+                        carregar_historico()
+                        messagebox.showinfo("Sucesso", "Pagamento editado com sucesso.")
+                        janela_editar.destroy()
+                    else:
+                        messagebox.showerror("Erro", "Erro ao ajustar o valor total do serviço.")
+                except Exception as e:
+                    messagebox.showerror("Erro", f"Erro ao salvar edição: {e}")
+
+
+            Button(janela_editar, text="Salvar", command=salvarEdicao, bg="#4CAF50", fg="white").pack(pady=10)
+
+        def finalizarServico():
             resposta = messagebox.askyesno("Confirmar", "Deseja realmente finalizar este serviço?")
             if not resposta:
                 return
@@ -824,12 +876,12 @@ def janelaGestor():
             finally:
                 conexao.close()
 
-        Button(frame_botoes, text="Registrar Pagamento", command=registrar_pagamento, bg="#4CAF50", fg="white").pack(side="left", padx=5)
-        Button(frame_botoes, text="Editar Selecionado", command=editar_pagamento).pack(side="left", padx=5)
-        Button(frame_botoes, text="Finalizar Serviço", bg="red", fg="white", command=finalizar_servico).pack(side="left", padx=5)
+        Button(frame_botoes, text="Registrar Pagamento", command=registrarPagamento, bg="#4CAF50", fg="white").pack(side="left", padx=5)
+        Button(frame_botoes, text="Editar Selecionado", command=editarPagamento).pack(side="left", padx=5)
+        Button(frame_botoes, text="Finalizar Serviço", bg="red", fg="white", command=finalizarServico).pack(side="left", padx=5)
 
 
-        def registrar_pagamento():
+        def registrarPagamento():
             try:
                 valor_parcial = float(entry_valor.get())
                 if valor_parcial <= 0:
@@ -880,13 +932,23 @@ def janelaGestor():
         janela.geometry("600x400")
         janela.configure(background=co0)
 
-        Label(janela, text=f"ID: {id_estoque}", font=("Verdana", 10)).pack(pady=5)
-        Label(janela, text=f"Produto: {nome_produto}", font=("Verdana", 10)).pack(pady=5)
-        Label(janela, text=f"Tipo: {tipo}", font=("Verdana", 10)).pack(pady=5)
-        Label(janela, text=f"Quantidade Atual: {quantidade}", font=("Verdana", 10)).pack(pady=5)
+        frame_topo = Frame(janela, bg=co0)
+        frame_topo.pack(pady=10)
 
-        # Histórico de movimentações
-        Label(janela, text="Histórico de Movimentações:", font=("Verdana", 10, "bold")).pack(pady=10)
+        frame_esquerda = Frame(frame_topo, bg=co0)
+        frame_esquerda.pack(side="left", padx=20)
+
+        Label(frame_esquerda, text=f"ID: {id_estoque}", font=("Verdana", 10), fg=co1, bg=co0).pack(pady=2)
+        Label(frame_esquerda, text=f"Produto: {nome_produto}", font=("Verdana", 10), fg=co1, bg=co0).pack(pady=2)
+
+        frame_direita = Frame(frame_topo, bg=co0)
+        frame_direita.pack(side="left", padx=20)
+
+        Label(frame_direita, text=f"Tipo: {tipo}", font=("Verdana", 10), fg=co1, bg=co0).pack(pady=2)
+        label_quantidade = Label(frame_direita, text=f"Quantidade Atual: {quantidade}", font=("Verdana", 10), fg=co7, bg=co0)
+        label_quantidade.pack(pady=2)
+
+        Label(janela, text="Histórico de Movimentações:", font=("Verdana", 10, "bold"), bg=co0).pack(pady=5)
 
         tabela_mov = ttk.Treeview(janela, columns=("produto", "tipo", "quantidade", "data"), show="headings")
         tabela_mov.heading("produto", text="Produto")
@@ -894,16 +956,15 @@ def janelaGestor():
         tabela_mov.heading("quantidade", text="Quantidade")
         tabela_mov.heading("data", text="Data")
 
-        tabela_mov.column("produto", width=150)
-        tabela_mov.column("tipo", width=100)
-        tabela_mov.column("quantidade", width=100)
-        tabela_mov.column("data", width=150)
+        tabela_mov.column("produto", width=150, anchor="center")
+        tabela_mov.column("tipo", width=100, anchor="center")
+        tabela_mov.column("quantidade", width=100, anchor="center")
+        tabela_mov.column("data", width=150, anchor="center")
 
         tabela_mov.pack(padx=10, pady=5, fill="both", expand=True)
 
         movimentacoes = listarMovimentacoesPorEstoque(id_estoque)
-        for mov in movimentacoes:
-            quantidade_mov, data_mov, nome_prod, tipo_prod = mov
+        for quantidade_mov, data_mov, nome_prod, tipo_prod in movimentacoes:
             tabela_mov.insert("", "end", values=(nome_prod, tipo_prod, quantidade_mov, data_mov))
 
 
@@ -1016,13 +1077,14 @@ def janelaGestor():
 
     # Função para carregar dados nas abas
     def carregar_dados():
-        pessoas = {p[0]: p[1] for p in listarPessoas()}
+        pessoas = {p[0]: (p[1], p[4]) for p in listarPessoas()}
+        
         for tabela, status in [(tabelaAtivos, "ativo"), (tabelaFinalizados, "finalizado")]:
             for row in tabela.get_children():
                 tabela.delete(row)
             for servico in listarServicos(status):
                 id_, idPessoa, objetivo, valor, data_inicio, data_fim, _ = servico
-                nome = pessoas.get(idPessoa, f"ID {idPessoa}")
+                nome, _ = pessoas.get(idPessoa, (f"ID {idPessoa}", ""))
                 tabela.insert("", "end", values=(id_, nome, objetivo, valor, data_inicio, data_fim))
 
         for row in tabelaProdutos.get_children():
@@ -1038,7 +1100,19 @@ def janelaGestor():
         for row in tabelaCompras.get_children():
             tabelaCompras.delete(row)
         for venda in listarVendas():
-            tabelaCompras.insert("", "end", values=venda)
+            id_venda, valor, produtos_json, data, id_pessoa, *resto = venda
+            try:
+                produtos_lista = json.loads(produtos_json)
+                nomes_produtos = ", ".join([p["nome"] for p in produtos_lista])
+            except Exception as e:
+                print(f"Erro ao processar JSON de produtos: {e}")
+                nomes_produtos = "Erro ao ler produtos"
+            
+            nome_pessoa, tipo_pessoa = pessoas.get(id_pessoa, (f"ID {id_pessoa}", ""))
+            tabelaCompras.insert("", "end", values=(
+                id_venda, valor, nomes_produtos, data, id_pessoa, nome_pessoa, tipo_pessoa
+            ))
+
 
     carregar_dados()
     janelaGestao.mainloop()
