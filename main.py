@@ -486,7 +486,7 @@ def janelaGestor():
     def janelaAdicionarServico():
         janela = Toplevel()
         janela.title("Adicionar Serviço")
-        janela.geometry("400x450")
+        janela.geometry("400x400")
         janela.configure(background=co0)
         janela.resizable(False, False)
 
@@ -500,20 +500,18 @@ def janelaGestor():
         entrada_valor = Entry(janela, font=("Verdana", 10))
         entrada_valor.pack(padx=20, fill=X)
 
-        Label(janela, text="Data de Início (DD-MM-AAAA):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
-        entrada_inicio = Entry(janela, font=("Verdana", 10))
+        # Data de início: automática e desativada para edição
+        Label(janela, text="Data de Início:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        data_inicio = datetime.datetime.now().strftime("%d-%m-%Y")
+        entrada_inicio = Entry(janela, font=("Verdana", 10), state="disabled")
+        entrada_inicio.insert(0, data_inicio)
         entrada_inicio.pack(padx=20, fill=X)
-        entrada_inicio.bind("<KeyRelease>", formatar_data)
 
-        Label(janela, text="Data de Fim (DD-MM-AAAA):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        # Data de fim: opcional
+        Label(janela, text="Data de Fim (DD-MM-AAAA) [opcional]:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
         entrada_fim = Entry(janela, font=("Verdana", 10))
         entrada_fim.pack(padx=20, fill=X)
         entrada_fim.bind("<KeyRelease>", formatar_data)
-
-        label_tempo_texto = Label(janela, text="Tempo (dias):", bg=co0, anchor=W)
-        label_tempo_texto.pack(fill=X, padx=20, pady=(10, 0))
-        label_tempo = Label(janela, text="0", font=("Verdana", 10), bg=co0, fg=co1)
-        label_tempo.pack(padx=20, fill=X)
 
         Label(janela, text="Pessoa vinculada:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
         pessoas = [p for p in listarPessoas() if p[4] in ("comprador", "ambos")]
@@ -525,18 +523,17 @@ def janelaGestor():
         def salvar_servico():
             objetivo = entrada_objetivo.get()
             valor = entrada_valor.get()
-            data_inicio = entrada_inicio.get()
-            data_fim = entrada_fim.get()
-            tempo = label_tempo.cget("text")
             nome_pessoa = pessoa_var.get()
+            data_fim = entrada_fim.get().strip() or None  # Se vazio, fica None
 
-            if not (objetivo and valor and data_inicio and data_fim and nome_pessoa):
-                messagebox.showwarning("Aviso", "Preencha todos os campos!")
+            # Validação básica
+            if not (objetivo and valor and nome_pessoa):
+                messagebox.showwarning("Aviso", "Preencha todos os campos obrigatórios!")
                 return
 
             try:
                 idPessoa = [p[0] for p in pessoas if p[1] == nome_pessoa][0]
-                servico = ("ativo", objetivo, data_inicio, data_fim, tempo, float(valor), idPessoa)
+                servico = ("ativo", objetivo, data_inicio, data_fim, float(valor), idPessoa)
                 inserirServico(servico)
                 messagebox.showinfo("Sucesso", "Serviço adicionado com sucesso!")
                 janela.destroy()
@@ -545,7 +542,7 @@ def janelaGestor():
                 messagebox.showerror("Erro", f"Ocorreu um erro ao salvar: {e}")
 
         Button(janela, text="Salvar Serviço", bg="#4CAF50", fg="white", font=("Verdana", 10),
-               command=salvar_servico).pack(pady=20)
+            command=salvar_servico).pack(pady=20)
         
     def janelaAdicionarProduto():
         janela = Toplevel()
@@ -1103,7 +1100,7 @@ def janelaGestor():
             id_venda, valor, produtos_json, data, id_pessoa, *resto = venda
             try:
                 produtos_lista = json.loads(produtos_json)
-                nomes_produtos = ", ".join([p["nome"] for p in produtos_lista])
+                nomes_produtos = ", ".join([f"{p['quantidade']} {p['nome']}" for p in produtos_lista])
             except Exception as e:
                 print(f"Erro ao processar JSON de produtos: {e}")
                 nomes_produtos = "Erro ao ler produtos"
