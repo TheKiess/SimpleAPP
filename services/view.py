@@ -116,7 +116,7 @@ def buscarEstoquePorProduto(idProduto):
     with con:
         cur = con.cursor()
         cur.execute("SELECT id, quantidade FROM Estoque WHERE idProduto = ?", (idProduto,))
-        return cur.fetchone()  # retorna (idEstoque, quantidade) ou None
+        return cur.fetchone()
 
 ################ TABELA SERVICO ################
 

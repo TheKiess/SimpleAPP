@@ -486,7 +486,7 @@ def janelaGestor():
     def janelaAdicionarServico():
         janela = Toplevel()
         janela.title("Adicionar Serviço")
-        janela.geometry("400x400")
+        janela.geometry("400x300")
         janela.configure(background=co0)
         janela.resizable(False, False)
 
@@ -500,19 +500,6 @@ def janelaGestor():
         entrada_valor = Entry(janela, font=("Verdana", 10))
         entrada_valor.pack(padx=20, fill=X)
 
-        # Data de início: automática e desativada para edição
-        Label(janela, text="Data de Início:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
-        data_inicio = datetime.datetime.now().strftime("%d-%m-%Y")
-        entrada_inicio = Entry(janela, font=("Verdana", 10), state="disabled")
-        entrada_inicio.insert(0, data_inicio)
-        entrada_inicio.pack(padx=20, fill=X)
-
-        # Data de fim: opcional
-        Label(janela, text="Data de Fim (DD-MM-AAAA) [opcional]:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
-        entrada_fim = Entry(janela, font=("Verdana", 10))
-        entrada_fim.pack(padx=20, fill=X)
-        entrada_fim.bind("<KeyRelease>", formatar_data)
-
         Label(janela, text="Pessoa vinculada:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
         pessoas = [p for p in listarPessoas() if p[4] in ("comprador", "ambos")]
         nomes = [p[1] for p in pessoas]
@@ -524,16 +511,17 @@ def janelaGestor():
             objetivo = entrada_objetivo.get()
             valor = entrada_valor.get()
             nome_pessoa = pessoa_var.get()
-            data_fim = entrada_fim.get().strip() or None  # Se vazio, fica None
+            data_inicio = datetime.datetime.now().strftime("%d-%m-%Y")
+            data_fim = None
 
-            # Validação básica
             if not (objetivo and valor and nome_pessoa):
                 messagebox.showwarning("Aviso", "Preencha todos os campos obrigatórios!")
                 return
 
             try:
                 idPessoa = [p[0] for p in pessoas if p[1] == nome_pessoa][0]
-                servico = ("ativo", objetivo, data_inicio, data_fim, float(valor), idPessoa)
+                # Agora com 7 valores, incluindo tempo=None
+                servico = ("ativo", objetivo, data_inicio, data_fim, None, float(valor), idPessoa)
                 inserirServico(servico)
                 messagebox.showinfo("Sucesso", "Serviço adicionado com sucesso!")
                 janela.destroy()
