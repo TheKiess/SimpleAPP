@@ -207,6 +207,36 @@ def deletarServico(idServico):
         cur = con.cursor()
         cur.execute("DELETE FROM Servico WHERE id = ?", (idServico,))
 
+def finalizarServico(id_servico):
+    with con:
+        cur = con.cursor()
+        cur.execute("SELECT valor_final FROM Servico WHERE id = ?", (id_servico,))
+        resultado = cur.fetchone()
+
+        if resultado is None:
+            return {"status": "erro", "mensagem": "Serviço não encontrado."}
+
+        valor_final = resultado[0]
+
+        if valor_final > 0:
+            data_pagamento = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+            cur.execute("""
+                INSERT INTO HistoricoPagamento (idServico, valor_pago, data_pagamento)
+                VALUES (?, ?, ?)
+            """, (id_servico, valor_final, data_pagamento))
+
+            cur.execute("""
+                UPDATE Servico SET valor_final = 0 WHERE id = ?
+            """, (id_servico,))
+
+        data_fim = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+        cur.execute("""
+            UPDATE Servico SET status = 'finalizado', data_fim = ?
+            WHERE id = ?
+        """, (data_fim, id_servico))
+
+        return {"status": "sucesso", "mensagem": "Serviço finalizado com sucesso."}
+    
 ################ TABELA VENDA ################
 
 def inserirVenda(venda):
@@ -240,7 +270,6 @@ def deletarVenda(idVenda):
 ################ TABELA HISTORICO PAGAMENTO  ################
 
 def registrarPagamentoParcial(id_servico, valor_parcial):
-
     if valor_parcial <= 0:
         return {"status": "erro", "mensagem": "O valor parcial deve ser maior que zero."}
 
@@ -248,7 +277,6 @@ def registrarPagamentoParcial(id_servico, valor_parcial):
         conexao = sqlite3.connect('dados.db')
         cursor = conexao.cursor()
 
-        # Busca o valor atual do serviço
         cursor.execute("SELECT valor_final FROM Servico WHERE id = ?", (id_servico,))
         resultado = cursor.fetchone()
 
@@ -267,7 +295,6 @@ def registrarPagamentoParcial(id_servico, valor_parcial):
         cursor.execute("UPDATE Servico SET valor_final = ? WHERE id = ?", (novo_valor, id_servico))
 
         data_pagamento = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
-        
         cursor.execute("""
             INSERT INTO HistoricoPagamento (idServico, valor_pago, data_pagamento)
             VALUES (?, ?, ?)

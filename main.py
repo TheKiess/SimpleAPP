@@ -486,7 +486,7 @@ def janelaGestor():
     def janelaAdicionarServico():
         janela = Toplevel()
         janela.title("Adicionar Serviço")
-        janela.geometry("400x300")
+        janela.geometry("400x350")
         janela.configure(background=co0)
         janela.resizable(False, False)
 
@@ -500,6 +500,11 @@ def janelaGestor():
         entrada_valor = Entry(janela, font=("Verdana", 10))
         entrada_valor.pack(padx=20, fill=X)
 
+        Label(janela, text="Data de Entrega (opcional):", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
+        entrada_data_fim = Entry(janela, font=("Verdana", 10))
+        entrada_data_fim.pack(padx=20, fill=X)
+        entrada_data_fim.bind("<KeyRelease>", formatar_data)
+
         Label(janela, text="Pessoa vinculada:", bg=co0, anchor=W).pack(fill=X, padx=20, pady=(10, 0))
         pessoas = [p for p in listarPessoas() if p[4] in ("comprador", "ambos")]
         nomes = [p[1] for p in pessoas]
@@ -512,15 +517,22 @@ def janelaGestor():
             valor = entrada_valor.get()
             nome_pessoa = pessoa_var.get()
             data_inicio = datetime.datetime.now().strftime("%d-%m-%Y")
-            data_fim = None
+            data_fim = entrada_data_fim.get().strip() or None
 
             if not (objetivo and valor and nome_pessoa):
                 messagebox.showwarning("Aviso", "Preencha todos os campos obrigatórios!")
                 return
 
+            if data_fim:
+                try:
+                    dia, mes, ano = map(int, data_fim.split("-"))
+                    datetime.date(ano, mes, dia)
+                except ValueError:
+                    messagebox.showerror("Erro", "Data de entrega inválida!")
+                    return
+
             try:
                 idPessoa = [p[0] for p in pessoas if p[1] == nome_pessoa][0]
-                # Agora com 7 valores, incluindo tempo=None
                 servico = ("ativo", objetivo, data_inicio, data_fim, None, float(valor), idPessoa)
                 inserirServico(servico)
                 messagebox.showinfo("Sucesso", "Serviço adicionado com sucesso!")
@@ -531,6 +543,7 @@ def janelaGestor():
 
         Button(janela, text="Salvar Serviço", bg="#4CAF50", fg="white", font=("Verdana", 10),
             command=salvar_servico).pack(pady=20)
+
         
     def janelaAdicionarProduto():
         janela = Toplevel()
@@ -706,7 +719,6 @@ def janelaGestor():
             command=salvarCompra).pack(pady=20)
     
     def abrirDetalhesServico(event, tabela):
-
         def carregar_historico():
             tree_hist.delete(*tree_hist.get_children())
             conn = sqlite3.connect('dados.db')
@@ -762,7 +774,7 @@ def janelaGestor():
         entry_valor = Entry(frame_botoes, width=10)
         entry_valor.pack(side="left", padx=5)
 
-        def registrarPagamento():
+        def registrarPagamentoUI():
             try:
                 valor_parcial = float(entry_valor.get())
                 if valor_parcial <= 0:
@@ -793,7 +805,7 @@ def janelaGestor():
                 return
 
             id_pagamento = int(item[0])
-            valor_atual, data_atual = tree_hist.item(item, "values")
+            valor_atual, _ = tree_hist.item(item, "values")
 
             janela_editar = Toplevel(janela)
             janela_editar.title("Editar Pagamento")
@@ -812,75 +824,44 @@ def janelaGestor():
                     messagebox.showerror("Erro", "Insira um valor numérico válido.")
                     return
 
-                try:
-                    valor_antigo = float(valor_atual.replace("R$ ", "").replace(",", "."))
-                    data_atual = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+                valor_antigo = float(valor_atual.replace("R$ ", "").replace(",", "."))
+                data_atual = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 
-                    conn = sqlite3.connect("dados.db")
-                    cursor = conn.cursor()
+                conn = sqlite3.connect("dados.db")
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE HistoricoPagamento
+                    SET valor_pago = ?, data_pagamento = ?
+                    WHERE id = ?
+                """, (novo_valor, data_atual, id_pagamento))
+                conn.commit()
+                conn.close()
 
-                    cursor.execute("""
-                        UPDATE HistoricoPagamento
-                        SET valor_pago = ?, data_pagamento = ?
-                        WHERE id = ?
-                    """, (novo_valor, data_atual, id_pagamento))
-                    conn.commit()
-                    conn.close()
-
-                    sucesso = atualizarValorFinal(idServico, valor_antigo, novo_valor)
-
-                    if sucesso:
-                        novo_total = float(label_valor.cget("text").split("R$ ")[1].replace(",", ".")) + (valor_antigo - novo_valor)
-                        label_valor.config(text=f"Valor atual: R$ {novo_total:.2f}")
-                        carregar_historico()
-                        messagebox.showinfo("Sucesso", "Pagamento editado com sucesso.")
-                        janela_editar.destroy()
-                    else:
-                        messagebox.showerror("Erro", "Erro ao ajustar o valor total do serviço.")
-                except Exception as e:
-                    messagebox.showerror("Erro", f"Erro ao salvar edição: {e}")
-
+                sucesso = atualizarValorFinal(idServico, valor_antigo, novo_valor)
+                if sucesso:
+                    novo_total = float(label_valor.cget("text").split("R$ ")[1].replace(",", ".")) + (valor_antigo - novo_valor)
+                    label_valor.config(text=f"Valor atual: R$ {novo_total:.2f}")
+                    carregar_historico()
+                    messagebox.showinfo("Sucesso", "Pagamento editado com sucesso.")
+                    janela_editar.destroy()
+                else:
+                    messagebox.showerror("Erro", "Erro ao ajustar o valor total do serviço.")
 
             Button(janela_editar, text="Salvar", command=salvarEdicao, bg="#4CAF50", fg="white").pack(pady=10)
 
-        def finalizarServico():
-            resposta = messagebox.askyesno("Confirmar", "Deseja realmente finalizar este serviço?")
-            if not resposta:
-                return
+        def finalizarServicoUI():
+            confirmar = messagebox.askyesno("Confirmar", "Deseja realmente finalizar este serviço?")
+            if confirmar:
+                resultado = finalizarServico(idServico)
+                if resultado["status"] == "sucesso":
+                    messagebox.showinfo("Sucesso", resultado["mensagem"])
+                    janela.destroy()
+                else:
+                    messagebox.showerror("Erro", resultado["mensagem"])
 
-            conexao = sqlite3.connect('dados.db')
-            cursor = conexao.cursor()
-            try:
-                cursor.execute("UPDATE Servico SET status = ? WHERE id = ?", ("finalizado", idServico))
-                conexao.commit()
-                messagebox.showinfo("Sucesso", "Serviço finalizado com sucesso.")
-                janela.destroy()
-            except sqlite3.Error as e:
-                conexao.rollback()
-                messagebox.showerror("Erro", f"Erro ao finalizar serviço: {str(e)}")
-            finally:
-                conexao.close()
-
-        Button(frame_botoes, text="Registrar Pagamento", command=registrarPagamento, bg="#4CAF50", fg="white").pack(side="left", padx=5)
+        Button(frame_botoes, text="Registrar Pagamento", command=registrarPagamentoUI, bg="#4CAF50", fg="white").pack(side="left", padx=5)
         Button(frame_botoes, text="Editar Selecionado", command=editarPagamento).pack(side="left", padx=5)
-        Button(frame_botoes, text="Finalizar Serviço", bg="red", fg="white", command=finalizarServico).pack(side="left", padx=5)
-
-
-        def registrarPagamento():
-            try:
-                valor_parcial = float(entry_valor.get())
-                if valor_parcial <= 0:
-                    raise ValueError
-            except ValueError:
-                messagebox.showerror("Erro", "Insira um valor válido e maior que zero.")
-                return
-
-            resultado = registrarPagamentoParcial(idServico, valor_parcial)
-            if resultado["status"] == "sucesso":
-                messagebox.showinfo("Sucesso", resultado["mensagem"])
-                janela.destroy()
-            else:
-                messagebox.showerror("Erro", resultado["mensagem"])
+        Button(frame_botoes, text="Finalizar Serviço", bg="red", fg="white", command=finalizarServicoUI).pack(side="left", padx=5)
 
 
     def abrirDetalhesCompra(event, tabela):
