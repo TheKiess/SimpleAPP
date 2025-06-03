@@ -219,7 +219,7 @@ def finalizarServico(id_servico):
         valor_final = resultado[0]
 
         if valor_final > 0:
-            data_pagamento = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+            data_pagamento = datetime.datetime.now().strftime('%d-%m-%Y')
             cur.execute("""
                 INSERT INTO HistoricoPagamento (idServico, valor_pago, data_pagamento)
                 VALUES (?, ?, ?)
@@ -229,7 +229,7 @@ def finalizarServico(id_servico):
                 UPDATE Servico SET valor_final = 0 WHERE id = ?
             """, (id_servico,))
 
-        data_fim = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+        data_fim = datetime.datetime.now().strftime('%d-%m-%Y')
         cur.execute("""
             UPDATE Servico SET status = 'finalizado', data_fim = ?
             WHERE id = ?
@@ -294,7 +294,7 @@ def registrarPagamentoParcial(id_servico, valor_parcial):
 
         cursor.execute("UPDATE Servico SET valor_final = ? WHERE id = ?", (novo_valor, id_servico))
 
-        data_pagamento = datetime.datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+        data_pagamento = datetime.datetime.now().strftime('%d-%m-%Y')
         cursor.execute("""
             INSERT INTO HistoricoPagamento (idServico, valor_pago, data_pagamento)
             VALUES (?, ?, ?)

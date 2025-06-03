@@ -809,7 +809,7 @@ def janelaGestor():
 
             janela_editar = Toplevel(janela)
             janela_editar.title("Editar Pagamento")
-            janela_editar.geometry("300x180")
+            janela_editar.geometry("450x180")
             janela_editar.configure(bg=co0)
 
             Label(janela_editar, text="Valor:", font=("Verdana", 10), bg=co0).pack(pady=5)
@@ -825,7 +825,7 @@ def janelaGestor():
                     return
 
                 valor_antigo = float(valor_atual.replace("R$ ", "").replace(",", "."))
-                data_atual = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+                data_atual = datetime.datetime.now().strftime("%d-%m-%Y")
 
                 conn = sqlite3.connect("dados.db")
                 cursor = conn.cursor()
@@ -850,14 +850,153 @@ def janelaGestor():
             Button(janela_editar, text="Salvar", command=salvarEdicao, bg="#4CAF50", fg="white").pack(pady=10)
 
         def finalizarServicoUI():
-            confirmar = messagebox.askyesno("Confirmar", "Deseja realmente finalizar este serviço?")
+            confirmar = messagebox.askyesno("Confirmar", "Deseja realmente finalizar este serviço e registrar os produtos usados?")
             if confirmar:
-                resultado = finalizarServico(idServico)
-                if resultado["status"] == "sucesso":
-                    messagebox.showinfo("Sucesso", resultado["mensagem"])
-                    janela.destroy()
-                else:
-                    messagebox.showerror("Erro", resultado["mensagem"])
+                produtos_usados = []
+
+                def atualizarTabelaProdutos():
+                    tree_produtos.delete(*tree_produtos.get_children())
+                    for idx, (id_prod, nome_prod, qtd_usada) in enumerate(produtos_usados, start=1):
+                        tree_produtos.insert("", "end", iid=idx, values=(id_prod, nome_prod, qtd_usada))
+
+                def adicionarProduto():
+                    janela_add = Toplevel(janela)
+                    janela_add.title("Adicionar Produto Usado")
+                    janela_add.geometry("300x200")
+                    janela_add.configure(bg=co0)
+
+                    Label(janela_add, text="Produto:", font=("Verdana", 10), bg=co0).pack(pady=5)
+                    
+                    conn = sqlite3.connect("dados.db")
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT id, nome FROM Produto")
+                    produtos = cursor.fetchall()
+                    conn.close()
+
+                    nomes_produtos = [f"{id_} - {nome}" for id_, nome in produtos]
+                    combobox_produto = ttk.Combobox(janela_add, values=nomes_produtos, state="readonly")
+                    combobox_produto.pack(pady=5)
+
+                    Label(janela_add, text="Quantidade Usada:", font=("Verdana", 10), bg=co0).pack(pady=5)
+                    entry_qtd = Entry(janela_add)
+                    entry_qtd.pack(pady=5)
+
+                    def salvarProduto():
+                        if not combobox_produto.get():
+                            messagebox.showerror("Erro", "Selecione um produto.")
+                            return
+                        try:
+                            qtd_usada = int(entry_qtd.get())
+                            if qtd_usada <= 0:
+                                raise ValueError
+                        except ValueError:
+                            messagebox.showerror("Erro", "Insira uma quantidade válida e maior que zero.")
+                            return
+                        
+                        id_prod, nome_prod = combobox_produto.get().split(" - ", 1)
+                        produtos_usados.append((int(id_prod), nome_prod, qtd_usada))
+                        atualizarTabelaProdutos()
+                        messagebox.showinfo("Sucesso", "Produto adicionado à lista.")
+                        janela_add.destroy()
+
+                    Button(janela_add, text="Adicionar", command=salvarProduto, bg="#4CAF50", fg="white").pack(pady=10)
+
+                def editarProduto():
+                    item = tree_produtos.selection()
+                    if not item:
+                        messagebox.showwarning("Aviso", "Selecione um produto para editar.")
+                        return
+                    
+                    idx = int(item[0]) - 1
+                    id_prod, nome_prod, qtd_usada = produtos_usados[idx]
+
+                    janela_edit = Toplevel(janela)
+                    janela_edit.title("Editar Produto")
+                    janela_edit.geometry("300x180")
+                    janela_edit.configure(bg=co0)
+
+                    Label(janela_edit, text=f"Produto: {nome_prod}", font=("Verdana", 10), bg=co0).pack(pady=5)
+                    Label(janela_edit, text="Nova Quantidade:", font=("Verdana", 10), bg=co0).pack(pady=5)
+                    entry_nova_qtd = Entry(janela_edit)
+                    entry_nova_qtd.insert(0, str(qtd_usada))
+                    entry_nova_qtd.pack()
+
+                    def salvarEdicao():
+                        try:
+                            nova_qtd = int(entry_nova_qtd.get())
+                            if nova_qtd <= 0:
+                                raise ValueError
+                        except ValueError:
+                            messagebox.showerror("Erro", "Insira uma quantidade válida e maior que zero.")
+                            return
+                        
+                        produtos_usados[idx] = (id_prod, nome_prod, nova_qtd)
+                        atualizarTabelaProdutos()
+                        messagebox.showinfo("Sucesso", "Quantidade atualizada.")
+                        janela_edit.destroy()
+
+                    Button(janela_edit, text="Salvar", command=salvarEdicao, bg="#4CAF50", fg="white").pack(pady=10)
+
+                def removerProduto():
+                    item = tree_produtos.selection()
+                    if not item:
+                        messagebox.showwarning("Aviso", "Selecione um produto para remover.")
+                        return
+                    idx = int(item[0]) - 1
+                    produtos_usados.pop(idx)
+                    atualizarTabelaProdutos()
+                    messagebox.showinfo("Sucesso", "Produto removido da lista.")
+
+                def confirmarProdutos():
+                    if not produtos_usados:
+                        messagebox.showwarning("Aviso", "Nenhum produto adicionado.")
+                        return
+
+                    try:
+                        conn = sqlite3.connect("dados.db")
+                        cursor = conn.cursor()
+
+                        cursor.execute("UPDATE Servico SET status = 'finalizado' WHERE id = ?", (idServico,))
+                        conn.commit()
+
+                        for id_prod, _, qtd_usada in produtos_usados:
+                            cursor.execute("""
+                                UPDATE Estoque
+                                SET quantidade = quantidade - ?
+                                WHERE idProduto = ?
+                            """, (qtd_usada, id_prod))
+                        conn.commit()
+                        conn.close()
+
+                        messagebox.showinfo("Sucesso", "Serviço finalizado e estoque atualizado com sucesso.")
+                        janela.destroy()
+                        janela_produtos.destroy()
+                    except Exception as e:
+                        messagebox.showerror("Erro", f"Erro ao finalizar serviço: {e}")
+
+                janela_produtos = Toplevel(janela)
+                janela_produtos.title("Produtos Usados")
+                janela_produtos.geometry("500x300")
+                janela_produtos.configure(bg=co0)
+
+                Label(janela_produtos, text="Adicione/Edite os produtos usados:", font=("Verdana", 10), bg=co0).pack(pady=10)
+
+                tree_produtos = ttk.Treeview(janela_produtos, columns=("id", "produto", "quantidade"), show="headings")
+                tree_produtos.heading("id", text="ID")
+                tree_produtos.heading("produto", text="Produto")
+                tree_produtos.heading("quantidade", text="Quantidade")
+                tree_produtos.column("id", width=50, anchor="center")
+                tree_produtos.column("produto", width=200)
+                tree_produtos.column("quantidade", width=100, anchor="center")
+                tree_produtos.pack(pady=5, fill="x", padx=10)
+
+                frame_botoes_prod = Frame(janela_produtos, bg=co0)
+                frame_botoes_prod.pack(pady=10)
+
+                Button(frame_botoes_prod, text="Adicionar Produto", command=adicionarProduto, bg="#4CAF50", fg="white").pack(side="left", padx=5)
+                Button(frame_botoes_prod, text="Editar Selecionado", command=editarProduto).pack(side="left", padx=5)
+                Button(frame_botoes_prod, text="Remover Selecionado", command=removerProduto, bg="orange").pack(side="left", padx=5)
+                Button(frame_botoes_prod, text="Finalizar Serviço", command=confirmarProdutos, bg="red", fg="white").pack(side="left", padx=5)
 
         Button(frame_botoes, text="Registrar Pagamento", command=registrarPagamentoUI, bg="#4CAF50", fg="white").pack(side="left", padx=5)
         Button(frame_botoes, text="Editar Selecionado", command=editarPagamento).pack(side="left", padx=5)
