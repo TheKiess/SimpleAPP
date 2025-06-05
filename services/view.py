@@ -373,30 +373,41 @@ def atualizarValorFinal(id_servico, valor_antigo, valor_novo):
 ################ COMANDO  ################
 
 def obterValores():
+    con = sqlite3.connect("dados.db")
+    cur = con.cursor()
+    
     dados = []
 
-    for servico in listarServicosComPessoa():
-        id_, idPessoa, objetivo, valor, data_inicio, data_fim, tempo, nomePessoa, tipoPessoa = servico
-        dados.append((
-            id_,
-            data_inicio,
-            nomePessoa,
-            "Entrada",
-            f"Serviço: {objetivo}",
-            valor
-        ))
+    cur.execute("""
+        SELECT 
+            hp.id,
+            hp.data_pagamento,
+            p.nome,
+            'Entrada' AS tipo,
+            'Pagamento de Serviço' AS motivo,
+            hp.valor_pago
+        FROM HistoricoPagamento hp
+        INNER JOIN Servico s ON s.id = hp.idServico
+        INNER JOIN Pessoa p ON p.id = s.idPessoa
+        ORDER BY datetime(hp.data_pagamento) ASC
+    """)
+    for row in cur.fetchall():
+        data_raw = row[1]
+        try:
+            data_dt = datetime.datetime.fromisoformat(data_raw)
+        except:
+            data_dt = data_raw
+        dados.append((row[0], data_dt, row[2], row[3], row[4], row[5]))
 
     for venda in listarVendas():
         idVenda, valor, produtos, data, idPessoa, nome, tipo = venda
-        dados.append((
-            idVenda,
-            data,
-            nome,
-            "Saída",
-            f"Compra: {produtos}",
-            valor
-        ))
+        try:
+            data_dt = datetime.datetime.fromisoformat(data)
+        except:
+            data_dt = data
+        dados.append((idVenda, data_dt, nome, "Saída", f"Compra: {produtos}", valor))
 
+    con.close()
     return dados
 
 def tarefaJanelaPrincipal(tabela, calendario, conexao, cor_evento):

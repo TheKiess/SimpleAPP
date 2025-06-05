@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 from tkcalendar import Calendar
 from PIL import Image, ImageTk
 from collections import defaultdict
+
 import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -351,12 +352,15 @@ def janelaValor():
     janelaValores.geometry("1100x650")
     janelaValores.configure(background=co0)
     janelaValores.resizable(width=FALSE, height=FALSE)
-    janelaValores.grid_rowconfigure(1, weight=1)
-    janelaValores.grid_columnconfigure(0, weight=3)
-    janelaValores.grid_columnconfigure(1, weight=1)
+
+    notebook = ttk.Notebook(janelaValores)
+    notebook.pack(fill=BOTH, expand=True)
+
+    aba1 = Frame(notebook, background=co0)
+    notebook.add(aba1, text="Resumo")
 
     # DIV CIMA
-    divCima = Frame(janelaValores, width=1000, height=90, background=co6, relief="flat")
+    divCima = Frame(aba1, width=1000, height=90, background=co6, relief="flat")
     divCima.grid(row=0, column=0, columnspan=2, sticky="nsew")
 
     appImg = Image.open('Images/icone.jpg').resize((250, 70))
@@ -366,8 +370,8 @@ def janelaValor():
     appLogo.image = appImgTk
     appLogo.place(x=10, y=5)
 
-    # DIV MEIO
-    divMeio = Frame(janelaValores, background=co8, bd=2, relief="solid", width=600, height=460)
+    # DIV MEIO - TABELA
+    divMeio = Frame(aba1, background=co8, bd=2, relief="solid", width=600, height=460)
     divMeio.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
     divMeio.grid_propagate(False)
 
@@ -397,7 +401,7 @@ def janelaValor():
     tabela.tag_configure("red", background="#ffd0d0")
 
     # DIV GRAFICO
-    frameGrafico = Frame(janelaValores, background=co8, bd=2, relief="solid", width=380, height=460)
+    frameGrafico = Frame(aba1, background=co8, bd=2, relief="solid", width=380, height=460)
     frameGrafico.grid(row=1, column=1, padx=10, pady=10, sticky="nsew")
     frameGrafico.grid_propagate(False)
 
@@ -445,10 +449,40 @@ def janelaValor():
     canvas.get_tk_widget().pack(fill="both", expand=True)
 
     # DIV BAIXO
-    divBaixo = Frame(janelaValores, width=1000, height=40, background=co6, relief="flat")
+    divBaixo = Frame(aba1, width=1000, height=40, background=co6, relief="flat")
     divBaixo.grid(row=2, column=0, columnspan=2, sticky="ew")
     Label(divBaixo, text="© 2025 Frank Kiess - Todos os direitos reservados",
           bg=co6, fg=co1, font=("Verdana", 10)).pack(side=RIGHT, padx=10, pady=10)
+
+    # Concatenei uma segunda aba com o notebook
+    aba2 = Frame(notebook, background=co0)
+    notebook.add(aba2, text="Carteira")
+
+    labelSaldo = Label(aba2, text="Saldo Atual", font=("Verdana", 18), bg=co0, fg="black")
+    labelSaldo.pack(pady=20)
+
+    saldo = sum(float(d[5]) if d[3] == "Entrada" else -float(d[5]) for d in dadosValores)
+    labelValorSaldo = Label(aba2, text=f"R$ {saldo:.2f}", font=("Verdana", 24, "bold"),
+                             bg=co0, fg="green" if saldo >= 0 else "red")
+    labelValorSaldo.pack(pady=10)
+
+    frameHist = Frame(aba2, background=co8, bd=2, relief="solid")
+    frameHist.pack(padx=10, pady=10, fill=BOTH, expand=True)
+
+    labelHist = Label(frameHist, text="Últimos Lançamentos", bg=co8, font=("Verdana", 12, "bold"))
+    labelHist.pack(anchor=W, padx=10, pady=5)
+
+    treeHist = ttk.Treeview(frameHist, columns=["data", "tipo", "valor"], show="headings")
+    for col in ["data", "tipo", "valor"]:
+        treeHist.heading(col, text=col.capitalize())
+        treeHist.column(col, anchor="center")
+    treeHist.pack(fill=BOTH, expand=True, padx=10, pady=5)
+
+    ultimosDados = dadosValores[-10:] if len(dadosValores) > 10 else dadosValores
+    for d in reversed(ultimosDados):
+        treeHist.insert("", "end", values=(d[1], d[3], d[5]))
+
+    janelaValores.mainloop()
 
 
 def janelaGestor():
