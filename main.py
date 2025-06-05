@@ -346,45 +346,54 @@ def janelaPessoas():
     carregarPessoas()
 
 
+from tkinter import *
+from tkinter import ttk
+from PIL import Image, ImageTk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
+import datetime
+from collections import defaultdict
+
 def janelaValor():
+
     janelaValores = Toplevel()
     janelaValores.title("Controle de Valores")
     janelaValores.geometry("1100x650")
     janelaValores.configure(background=co0)
-    janelaValores.resizable(width=FALSE, height=FALSE)
-
-    notebook = ttk.Notebook(janelaValores)
-    notebook.pack(fill=BOTH, expand=True)
-
-    aba1 = Frame(notebook, background=co0)
-    notebook.add(aba1, text="Resumo")
+    janelaValores.resizable(False, False)
 
     # DIV CIMA
-    divCima = Frame(aba1, width=1000, height=90, background=co6, relief="flat")
-    divCima.grid(row=0, column=0, columnspan=2, sticky="nsew")
+    divCima = Frame(janelaValores, width=1100, height=90, background=co6, relief="flat")
+    divCima.pack(side="top", fill="x")
 
     appImg = Image.open('Images/icone.jpg').resize((250, 70))
     appImgTk = ImageTk.PhotoImage(appImg)
     appLogo = Label(divCima, image=appImgTk, text="  Controle de Valores", compound=LEFT,
-                    background=co6, fg=co1, anchor=NW, font=("Verdana", 20), relief="raised")
+                     background=co6, fg=co1, anchor=NW, font=("Verdana", 20), relief="raised")
     appLogo.image = appImgTk
     appLogo.place(x=10, y=5)
 
-    # DIV MEIO - TABELA
-    divMeio = Frame(aba1, background=co8, bd=2, relief="solid", width=600, height=460)
-    divMeio.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
-    divMeio.grid_propagate(False)
+    notebook = ttk.Notebook(janelaValores)
+    notebook.pack(fill=BOTH, expand=True)
 
-    colunas = ["id", "data", "nome", "tipo", "motivo", "valor"]
-    tabela = ttk.Treeview(divMeio, columns=colunas, show="headings")
+    # Primeira parte do notebook
+    aba1 = Frame(notebook, background=co0)
+    notebook.add(aba1, text="Resumo")
 
-    for col in colunas:
+    aba1.grid_rowconfigure(0, weight=1)
+    aba1.grid_columnconfigure(0, weight=1)
+    aba1.grid_columnconfigure(1, weight=1)
+
+    # DIV MEIO
+    divMeio = Frame(aba1, background=co8, bd=2, relief="solid")
+    divMeio.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+
+    tabela = ttk.Treeview(divMeio, columns=["id", "data", "nome", "tipo", "motivo", "valor"], show="headings")
+    for col in ["id", "data", "nome", "tipo", "motivo", "valor"]:
         tabela.heading(col, text=col.upper())
-
     largura_colunas = [25, 70, 130, 80, 150, 80]
-    for col, largura in zip(colunas, largura_colunas):
+    for col, largura in zip(["id", "data", "nome", "tipo", "motivo", "valor"], largura_colunas):
         tabela.column(col, width=largura, anchor="center")
-
     tabela.pack(fill="both", expand=True)
 
     try:
@@ -396,18 +405,14 @@ def janelaValor():
     for dado in dadosValores:
         cor = "green" if dado[3] == "Entrada" else "red"
         tabela.insert("", "end", values=dado, tags=(cor,))
-
     tabela.tag_configure("green", background="#d0ffd0")
     tabela.tag_configure("red", background="#ffd0d0")
 
-    # DIV GRAFICO
-    frameGrafico = Frame(aba1, background=co8, bd=2, relief="solid", width=380, height=460)
-    frameGrafico.grid(row=1, column=1, padx=10, pady=10, sticky="nsew")
-    frameGrafico.grid_propagate(False)
+    frameGrafico = Frame(aba1, background=co8, bd=2, relief="solid")
+    frameGrafico.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
 
     entradasMensais = defaultdict(float)
     saidasMensais = defaultdict(float)
-
     for dado in dadosValores:
         try:
             data = datetime.datetime.strptime(dado[1], "%d-%m-%Y")
@@ -416,17 +421,20 @@ def janelaValor():
                 data = datetime.datetime.strptime(dado[1], "%Y-%m-%d")
             except:
                 continue
-
         mes = data.strftime("%b")
-        valor = float(dado[5]) if isinstance(dado[5], (int, float)) else float(dado[5].replace(",", "."))
+        try:
+            valor = float(dado[5].replace(",", ".")) if isinstance(dado[5], str) else float(dado[5])
+        except:
+            valor = 0
         if dado[3] == "Entrada":
             entradasMensais[mes] += valor
         else:
             saidasMensais[mes] += valor
 
-    todosMeses = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    todosMeses = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     mesesPresentes = sorted(set(list(entradasMensais.keys()) + list(saidasMensais.keys())),
-                        key=lambda m: todosMeses.index(m))
+                            key=lambda m: todosMeses.index(m))
 
     entradas = [entradasMensais[mes] for mes in mesesPresentes]
     saidas = [saidasMensais[mes] for mes in mesesPresentes]
@@ -449,27 +457,37 @@ def janelaValor():
     canvas.get_tk_widget().pack(fill="both", expand=True)
 
     # DIV BAIXO
-    divBaixo = Frame(aba1, width=1000, height=40, background=co6, relief="flat")
-    divBaixo.grid(row=2, column=0, columnspan=2, sticky="ew")
+    divBaixo = Frame(janelaValores, width=1100, height=40, background=co6, relief="flat")
+    divBaixo.pack(side="bottom", fill="x")
     Label(divBaixo, text="© 2025 Frank Kiess - Todos os direitos reservados",
           bg=co6, fg=co1, font=("Verdana", 10)).pack(side=RIGHT, padx=10, pady=10)
 
-    # Concatenei uma segunda aba com o notebook
+    # Segunda parte do notebook
     aba2 = Frame(notebook, background=co0)
     notebook.add(aba2, text="Carteira")
 
     labelSaldo = Label(aba2, text="Saldo Atual", font=("Verdana", 18), bg=co0, fg="black")
     labelSaldo.pack(pady=20)
 
-    saldo = sum(float(d[5]) if d[3] == "Entrada" else -float(d[5]) for d in dadosValores)
-    labelValorSaldo = Label(aba2, text=f"R$ {saldo:.2f}", font=("Verdana", 24, "bold"),
-                             bg=co0, fg="green" if saldo >= 0 else "red")
+    saldo = 0
+    for d in dadosValores:
+        try:
+            valor = float(d[5].replace(",", ".")) if isinstance(d[5], str) else float(d[5])
+            saldo += valor if d[3] == "Entrada" else -valor
+        except:
+            continue
+
+    corSaldo = "green" if saldo >= 0 else "red"
+    labelValorSaldo = Label(aba2, text=f"R$ {saldo:.2f}",
+                             font=("Verdana", 24, "bold"),
+                             bg=co0, fg=corSaldo)
     labelValorSaldo.pack(pady=10)
 
     frameHist = Frame(aba2, background=co8, bd=2, relief="solid")
     frameHist.pack(padx=10, pady=10, fill=BOTH, expand=True)
 
-    labelHist = Label(frameHist, text="Últimos Lançamentos", bg=co8, font=("Verdana", 12, "bold"))
+    labelHist = Label(frameHist, text="Últimos Lançamentos",
+                       bg=co8, font=("Verdana", 12, "bold"))
     labelHist.pack(anchor=W, padx=10, pady=5)
 
     treeHist = ttk.Treeview(frameHist, columns=["data", "tipo", "valor"], show="headings")

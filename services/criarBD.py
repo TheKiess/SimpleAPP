@@ -81,6 +81,7 @@ with con:
             idServico INTEGER,
             valor_pago REAL,
             data_pagamento TEXT,
+            observacao TEXT,
             FOREIGN KEY (idServico) REFERENCES Servico(id)
         )
     """)

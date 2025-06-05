@@ -372,6 +372,9 @@ def atualizarValorFinal(id_servico, valor_antigo, valor_novo):
 
 ################ COMANDO  ################
 
+import sqlite3
+import datetime
+
 def obterValores():
     con = sqlite3.connect("dados.db")
     cur = con.cursor()
@@ -385,7 +388,8 @@ def obterValores():
             p.nome,
             'Entrada' AS tipo,
             'Pagamento de Serviço' AS motivo,
-            hp.valor_pago
+            hp.valor_pago,
+            IFNULL(hp.observacao, '') as observacao
         FROM HistoricoPagamento hp
         INNER JOIN Servico s ON s.id = hp.idServico
         INNER JOIN Pessoa p ON p.id = s.idPessoa
@@ -397,18 +401,20 @@ def obterValores():
             data_dt = datetime.datetime.fromisoformat(data_raw)
         except:
             data_dt = data_raw
-        dados.append((row[0], data_dt, row[2], row[3], row[4], row[5]))
+        dados.append((row[0], data_dt, row[2], row[3], row[4], row[5], row[6]))
 
+    from view import listarVendas  # ou onde estiver definido
     for venda in listarVendas():
         idVenda, valor, produtos, data, idPessoa, nome, tipo = venda
         try:
             data_dt = datetime.datetime.fromisoformat(data)
         except:
             data_dt = data
-        dados.append((idVenda, data_dt, nome, "Saída", f"Compra: {produtos}", valor))
+        dados.append((idVenda, data_dt, nome, "Saída", f"Compra: {produtos}", valor, ""))
 
     con.close()
     return dados
+
 
 def tarefaJanelaPrincipal(tabela, calendario, conexao, cor_evento):
     try:
