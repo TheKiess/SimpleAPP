@@ -372,13 +372,10 @@ def atualizarValorFinal(id_servico, valor_antigo, valor_novo):
 
 ################ COMANDO  ################
 
-import sqlite3
-import datetime
-
 def obterValores():
     con = sqlite3.connect("dados.db")
     cur = con.cursor()
-    
+
     dados = []
 
     cur.execute("""
@@ -403,7 +400,6 @@ def obterValores():
             data_dt = data_raw
         dados.append((row[0], data_dt, row[2], row[3], row[4], row[5], row[6]))
 
-    from view import listarVendas  # ou onde estiver definido
     for venda in listarVendas():
         idVenda, valor, produtos, data, idPessoa, nome, tipo = venda
         try:

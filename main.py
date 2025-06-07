@@ -346,16 +346,8 @@ def janelaPessoas():
     carregarPessoas()
 
 
-from tkinter import *
-from tkinter import ttk
-from PIL import Image, ImageTk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import matplotlib.pyplot as plt
-import datetime
-from collections import defaultdict
 
 def janelaValor():
-
     janelaValores = Toplevel()
     janelaValores.title("Controle de Valores")
     janelaValores.geometry("1100x650")
@@ -363,9 +355,8 @@ def janelaValor():
     janelaValores.resizable(False, False)
 
     # DIV CIMA
-    divCima = Frame(janelaValores, width=1100, height=90, background=co6, relief="flat")
+    divCima = Frame(janelaValores, width=1100, height=90, background=co6)
     divCima.pack(side="top", fill="x")
-
     appImg = Image.open('Images/icone.jpg').resize((250, 70))
     appImgTk = ImageTk.PhotoImage(appImg)
     appLogo = Label(divCima, image=appImgTk, text="  Controle de Valores", compound=LEFT,
@@ -379,7 +370,6 @@ def janelaValor():
     # Primeira parte do notebook
     aba1 = Frame(notebook, background=co0)
     notebook.add(aba1, text="Resumo")
-
     aba1.grid_rowconfigure(0, weight=1)
     aba1.grid_columnconfigure(0, weight=1)
     aba1.grid_columnconfigure(1, weight=1)
@@ -387,7 +377,6 @@ def janelaValor():
     # DIV MEIO
     divMeio = Frame(aba1, background=co8, bd=2, relief="solid")
     divMeio.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
-
     tabela = ttk.Treeview(divMeio, columns=["id", "data", "nome", "tipo", "motivo", "valor"], show="headings")
     for col in ["id", "data", "nome", "tipo", "motivo", "valor"]:
         tabela.heading(col, text=col.upper())
@@ -396,73 +385,58 @@ def janelaValor():
         tabela.column(col, width=largura, anchor="center")
     tabela.pack(fill="both", expand=True)
 
-    try:
-        dadosValores = obterValores()
-    except Exception as e:
-        print("Erro ao obter dados:", e)
-        dadosValores = []
-
+    dadosValores = obterValores()
     for dado in dadosValores:
         cor = "green" if dado[3] == "Entrada" else "red"
         tabela.insert("", "end", values=dado, tags=(cor,))
     tabela.tag_configure("green", background="#d0ffd0")
     tabela.tag_configure("red", background="#ffd0d0")
 
+    # Botões de Ação
+    frameBotoes = Frame(divMeio, bg=co8)
+    frameBotoes.pack(fill=X, padx=5, pady=5)
+    Button(frameBotoes, text="Ver Detalhes", command=lambda: verDetalhes(tabela), bg=co2, fg=co1).pack(side=LEFT, padx=5)
+    Button(frameBotoes, text="Atualizar", command=lambda: atualizarTabela(tabela), bg=co2, fg=co1).pack(side=LEFT, padx=5)
+    Button(frameBotoes, text="Exportar CSV", command=lambda: exportarCSV(dadosValores), bg=co2, fg=co1).pack(side=LEFT, padx=5)
+
+    # Frame do gráfico
     frameGrafico = Frame(aba1, background=co8, bd=2, relief="solid")
     frameGrafico.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
-
     entradasMensais = defaultdict(float)
     saidasMensais = defaultdict(float)
     for dado in dadosValores:
         try:
             data = datetime.datetime.strptime(dado[1], "%d-%m-%Y")
         except ValueError:
-            try:
-                data = datetime.datetime.strptime(dado[1], "%Y-%m-%d")
-            except:
-                continue
+            data = datetime.datetime.strptime(dado[1], "%Y-%m-%d")
         mes = data.strftime("%b")
-        try:
-            valor = float(dado[5].replace(",", ".")) if isinstance(dado[5], str) else float(dado[5])
-        except:
-            valor = 0
+        valor = float(dado[5].replace(",", ".")) if isinstance(dado[5], str) else float(dado[5])
         if dado[3] == "Entrada":
             entradasMensais[mes] += valor
         else:
             saidasMensais[mes] += valor
-
     todosMeses = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     mesesPresentes = sorted(set(list(entradasMensais.keys()) + list(saidasMensais.keys())),
                             key=lambda m: todosMeses.index(m))
-
     entradas = [entradasMensais[mes] for mes in mesesPresentes]
     saidas = [saidasMensais[mes] for mes in mesesPresentes]
     lucros = [entradasMensais[mes] - saidasMensais[mes] for mes in mesesPresentes]
-
     fig, ax = plt.subplots(figsize=(5, 3))
     x = range(len(mesesPresentes))
     ax.bar([i - 0.25 for i in x], saidas, width=0.25, label='Saídas', color='red')
     ax.bar(x, entradas, width=0.25, label='Entradas', color='green')
     ax.bar([i + 0.25 for i in x], lucros, width=0.25, label='Lucro', color='gold')
-
     ax.set_xticks(x)
     ax.set_xticklabels(mesesPresentes)
     ax.set_title("Resumo Financeiro Mensal")
     ax.set_ylabel("R$")
     ax.legend()
-
     canvas = FigureCanvasTkAgg(fig, master=frameGrafico)
     canvas.draw()
     canvas.get_tk_widget().pack(fill="both", expand=True)
 
-    # DIV BAIXO
-    divBaixo = Frame(janelaValores, width=1100, height=40, background=co6, relief="flat")
-    divBaixo.pack(side="bottom", fill="x")
-    Label(divBaixo, text="© 2025 Frank Kiess - Todos os direitos reservados",
-          bg=co6, fg=co1, font=("Verdana", 10)).pack(side=RIGHT, padx=10, pady=10)
-
-    # Segunda parte do notebook
+    # Segunda parte do notebook - Carteira
     aba2 = Frame(notebook, background=co0)
     notebook.add(aba2, text="Carteira")
 
@@ -471,34 +445,174 @@ def janelaValor():
 
     saldo = 0
     for d in dadosValores:
-        try:
-            valor = float(d[5].replace(",", ".")) if isinstance(d[5], str) else float(d[5])
-            saldo += valor if d[3] == "Entrada" else -valor
-        except:
-            continue
-
+        valor = float(d[5].replace(",", ".")) if isinstance(d[5], str) else float(d[5])
+        saldo += valor if d[3] == "Entrada" else -valor
     corSaldo = "green" if saldo >= 0 else "red"
     labelValorSaldo = Label(aba2, text=f"R$ {saldo:.2f}",
-                             font=("Verdana", 24, "bold"),
-                             bg=co0, fg=corSaldo)
+                            font=("Verdana", 24, "bold"),
+                            bg=co0, fg=corSaldo)
     labelValorSaldo.pack(pady=10)
 
+    # Frame do histórico
     frameHist = Frame(aba2, background=co8, bd=2, relief="solid")
     frameHist.pack(padx=10, pady=10, fill=BOTH, expand=True)
-
     labelHist = Label(frameHist, text="Últimos Lançamentos",
-                       bg=co8, font=("Verdana", 12, "bold"))
+                    bg=co8, font=("Verdana", 12, "bold"))
     labelHist.pack(anchor=W, padx=10, pady=5)
 
-    treeHist = ttk.Treeview(frameHist, columns=["data", "tipo", "valor"], show="headings")
-    for col in ["data", "tipo", "valor"]:
+    treeHist = ttk.Treeview(frameHist, columns=["data", "tipo", "valor", "observacao"], show="headings")
+    for col in ["data", "tipo", "valor", "observacao"]:
         treeHist.heading(col, text=col.capitalize())
         treeHist.column(col, anchor="center")
     treeHist.pack(fill=BOTH, expand=True, padx=10, pady=5)
 
     ultimosDados = dadosValores[-10:] if len(dadosValores) > 10 else dadosValores
     for d in reversed(ultimosDados):
-        treeHist.insert("", "end", values=(d[1], d[3], d[5]))
+        observacao = d[6] if len(d) > 6 else ""  # Lida com casos antigos sem observação
+        treeHist.insert("", "end", values=(d[1], d[3], d[5], observacao))
+
+    frameBotoesHist = Frame(aba2, bg=co0)
+    frameBotoesHist.pack(pady=10)
+
+    btnAdicionar = Button(frameBotoesHist, text="Adicionar",
+                        bg=co2, fg=co1, command=lambda: adicionarLancamento(treeHist))
+    btnAdicionar.pack(side=LEFT, padx=5)
+
+    btnEditar = Button(frameBotoesHist, text="Editar",
+                        bg=co2, fg=co1, command=lambda: editarLancamento(treeHist))
+    btnEditar.pack(side=LEFT, padx=5)
+
+    btnDeletar = Button(frameBotoesHist, text="Deletar",
+                        bg=co2, fg=co1, command=lambda: deletarLancamento(treeHist))
+    btnDeletar.pack(side=LEFT, padx=5)
+
+
+    def adicionarLancamento(tree):
+
+        def salvar():
+            data = entryData.get()
+            tipo = comboTipo.get()
+            valor = entryValor.get()
+            obs = entryObs.get()
+            if not (data and tipo and valor):
+                messagebox.showerror("Erro", "Preencha todos os campos obrigatórios.")
+                return
+            # Aqui você poderia salvar no banco de dados também
+            tree.insert("", 0, values=(data, tipo, valor, obs))
+            top.destroy()
+
+        top = Toplevel()
+        top.title("Adicionar Lançamento")
+
+        Label(top, text="Data:").grid(row=0, column=0, padx=5, pady=5)
+        entryData = Entry(top)
+        entryData.grid(row=0, column=1, padx=5, pady=5)
+
+        Label(top, text="Tipo:").grid(row=1, column=0, padx=5, pady=5)
+        comboTipo = ttk.Combobox(top, values=["Entrada", "Saída"])
+        comboTipo.grid(row=1, column=1, padx=5, pady=5)
+
+        Label(top, text="Valor:").grid(row=2, column=0, padx=5, pady=5)
+        entryValor = Entry(top)
+        entryValor.grid(row=2, column=1, padx=5, pady=5)
+
+        Label(top, text="Observação:").grid(row=3, column=0, padx=5, pady=5)
+        entryObs = Entry(top)
+        entryObs.grid(row=3, column=1, padx=5, pady=5)
+        Button(top, text="Salvar", command=salvar).grid(row=4, column=0, columnspan=2, pady=10)
+
+    def editarLancamento(tree):
+        selected = tree.focus()
+        if not selected:
+            messagebox.showwarning("Aviso", "Selecione um lançamento.")
+            return
+        values = tree.item(selected, "values")
+
+        def salvar():
+            novaData = entryData.get()
+            novoTipo = comboTipo.get()
+            novoValor = entryValor.get()
+            novoObs = entryObs.get()
+            if not (novaData and novoTipo and novoValor):
+                messagebox.showerror("Erro", "Preencha todos os campos obrigatórios.")
+                return
+            tree.item(selected, values=(novaData, novoTipo, novoValor, novoObs))
+            top.destroy()
+
+        top = Toplevel()
+        top.title("Editar Lançamento")
+        Label(top, text="Data:").grid(row=0, column=0, padx=5, pady=5)
+        entryData = Entry(top)
+        entryData.insert(0, values[0])
+        entryData.grid(row=0, column=1, padx=5, pady=5)
+
+        Label(top, text="Tipo:").grid(row=1, column=0, padx=5, pady=5)
+        comboTipo = ttk.Combobox(top, values=["Entrada", "Saída"])
+        comboTipo.set(values[1])
+        comboTipo.grid(row=1, column=1, padx=5, pady=5)
+
+        Label(top, text="Valor:").grid(row=2, column=0, padx=5, pady=5)
+        entryValor = Entry(top)
+        entryValor.insert(0, values[2])
+        entryValor.grid(row=2, column=1, padx=5, pady=5)
+
+        Label(top, text="Observação:").grid(row=3, column=0, padx=5, pady=5)
+        entryObs = Entry(top)
+        entryObs.insert(0, values[3])
+        entryObs.grid(row=3, column=1, padx=5, pady=5)
+        Button(top, text="Salvar", command=salvar).grid(row=4, column=0, columnspan=2, pady=10)
+
+    def deletarLancamento(tree):
+        selected = tree.focus()
+        if not selected:
+            messagebox.showwarning("Aviso", "Selecione um lançamento para deletar.")
+            return
+        confirm = messagebox.askyesno("Confirmação", "Deseja realmente deletar este lançamento?")
+        if confirm:
+            tree.delete(selected)
+
+    # DIV BAIXO
+    divBaixo = Frame(janelaValores, width=1100, height=40, background=co6)
+    divBaixo.pack(side="bottom", fill="x")
+    Label(divBaixo, text="© 2025 Frank Kiess - Todos os direitos reservados",
+          bg=co6, fg=co1, font=("Verdana", 10)).pack(side=RIGHT, padx=10, pady=10)
+    
+
+    # Função de ver detalhes
+    def verDetalhes(tabela):
+        item = tabela.focus()
+        if not item:
+            messagebox.showinfo("Aviso", "Selecione um item!")
+            return
+        dados = tabela.item(item, "values")
+        messagebox.showinfo("Detalhes do Lançamento",
+                            f"ID: {dados[0]}\nData: {dados[1]}\nNome: {dados[2]}\n"
+                            f"Tipo: {dados[3]}\nMotivo: {dados[4]}\nValor: {dados[5]}")
+
+    # Função para atualizar a tabela
+    def atualizarTabela(tabela):
+        for row in tabela.get_children():
+            tabela.delete(row)
+        novos_dados = obterValores()
+        for dado in novos_dados:
+            cor = "green" if dado[3] == "Entrada" else "red"
+            tabela.insert("", "end", values=dado, tags=(cor,))
+        tabela.tag_configure("green", background="#d0ffd0")
+        tabela.tag_configure("red", background="#ffd0d0")
+
+    # Função para exportar CSV
+    def exportarCSV(dados):
+        from tkinter.filedialog import asksaveasfilename
+        path = asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
+        if not path:
+            return
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            import csv
+            writer = csv.writer(f)
+            writer.writerow(["id", "data", "nome", "tipo", "motivo", "valor", "observacao"])
+            for d in dados:
+                writer.writerow(d)
+        messagebox.showinfo("Exportado", "Arquivo CSV exportado com sucesso!")
 
     janelaValores.mainloop()
 
