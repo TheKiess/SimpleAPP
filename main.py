@@ -25,6 +25,7 @@ co6 = "#038cfc"  # azul
 co7 = "#15d100"  # verde
 co8 = "#263238"  # Verde musgo escuro
 co9 = "#FF0000" # Vermelho
+co10 = "#7E9B00" # Amarelo
 
 ################# TELA INICIAL APÓS LOGIN ###############
 
@@ -479,11 +480,18 @@ def janelaValor():
     btnAdicionar.pack(side=LEFT, padx=5)
 
     btnEditar = Button(frameBotoesHist, text="Editar",
-                        bg=co2, fg=co1, command=lambda: editarLancamento(treeHist))
+                        bg=co10, fg=co1, command=lambda: editarLancamento(treeHist))
     btnEditar.pack(side=LEFT, padx=5)
+    
+    img_pil = Image.open("images/Lixeirinha.png")
+    img_pil = img_pil.resize((20, 20))
+    img_tk = ImageTk.PhotoImage(img_pil)
 
-    btnDeletar = Button(frameBotoesHist, text="Deletar",
-                        bg=co2, fg=co1, command=lambda: deletarLancamento(treeHist))
+    btnDeletar = Button(frameBotoesHist,
+                        image=img_tk,
+                        command=lambda: deletarLancamento(treeHist),
+                        relief="flat")
+    btnDeletar.image = img_tk
     btnDeletar.pack(side=LEFT, padx=5)
 
 

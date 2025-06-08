@@ -372,12 +372,33 @@ def atualizarValorFinal(id_servico, valor_antigo, valor_novo):
 
 ################ COMANDO  ################
 
+def listarVendasParaValores():
+    con = sqlite3.connect("dados.db")
+    cur = con.cursor()
+    cur.execute("""
+        SELECT 
+            v.id,
+            v.valor,
+            v.produtos,
+            v.data,
+            v.idPessoa,
+            p.nome,
+            p.tipo
+        FROM Venda v
+        JOIN Pessoa p ON v.idPessoa = p.id
+    """)
+    vendas = cur.fetchall()
+    cur.close()
+    con.close()
+    return vendas
+
 def obterValores():
     con = sqlite3.connect("dados.db")
     cur = con.cursor()
 
     dados = []
 
+    # Pega o histórico de pagamentos
     cur.execute("""
         SELECT 
             hp.id,
@@ -396,19 +417,22 @@ def obterValores():
         data_raw = row[1]
         try:
             data_dt = datetime.datetime.fromisoformat(data_raw)
-        except:
+        except Exception:
             data_dt = data_raw
         dados.append((row[0], data_dt, row[2], row[3], row[4], row[5], row[6]))
 
-    for venda in listarVendas():
+    for venda in listarVendasParaValores():
         idVenda, valor, produtos, data, idPessoa, nome, tipo = venda
         try:
             data_dt = datetime.datetime.fromisoformat(data)
-        except:
+        except Exception:
             data_dt = data
         dados.append((idVenda, data_dt, nome, "Saída", f"Compra: {produtos}", valor, ""))
 
+    cur.close()
     con.close()
+
+    dados.sort(key=lambda x: x[1])
     return dados
 
 
