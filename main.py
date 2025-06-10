@@ -469,7 +469,7 @@ def janelaValor():
 
     ultimosDados = dadosValores[-10:] if len(dadosValores) > 10 else dadosValores
     for d in reversed(ultimosDados):
-        observacao = d[6] if len(d) > 6 else ""  # Lida com casos antigos sem observação
+        observacao = d[6] if len(d) > 6 else ""
         treeHist.insert("", "end", values=(d[1], d[3], d[5], observacao))
 
     frameBotoesHist = Frame(aba2, bg=co0)
@@ -494,9 +494,7 @@ def janelaValor():
     btnDeletar.image = img_tk
     btnDeletar.pack(side=LEFT, padx=5)
 
-
     def adicionarLancamento(tree):
-
         def salvar():
             data = entryData.get()
             tipo = comboTipo.get()
@@ -505,29 +503,44 @@ def janelaValor():
             if not (data and tipo and valor):
                 messagebox.showerror("Erro", "Preencha todos os campos obrigatórios.")
                 return
-            # Aqui você poderia salvar no banco de dados também
             tree.insert("", 0, values=(data, tipo, valor, obs))
             top.destroy()
 
         top = Toplevel()
         top.title("Adicionar Lançamento")
+        top.configure(bg=co0)
+        style = ttk.Style(top)
+        style.theme_use("clam")
+        top.resizable(width=FALSE, height=FALSE)
+        style.configure("BotaoAdicionar.TButton",
+                        font=("Helvetica", 11, "bold"),
+                        foreground="white",
+                        background=co7,
+                        borderwidth=0,
+                        focusthickness=3,
+                        focuscolor="none",
+                        relief="flat",
+                        padding=6)
+        style.map("BotaoAdicionar.TButton",
+                foreground=[("active", co1)],
+                background=[("active", co7)])
 
-        Label(top, text="Data:").grid(row=0, column=0, padx=5, pady=5)
-        entryData = Entry(top)
+        for i, texto in enumerate(["Data:", "Tipo:", "Valor:", "Observação:"]):
+            ttk.Label(top, text=texto, background=co0, foreground=co1, font=("Helvetica", 11)).grid(row=i, column=0, padx=5, pady=5, sticky="w")
+
+        entryData = ttk.Entry(top, font=("Helvetica", 11))
         entryData.grid(row=0, column=1, padx=5, pady=5)
 
-        Label(top, text="Tipo:").grid(row=1, column=0, padx=5, pady=5)
-        comboTipo = ttk.Combobox(top, values=["Entrada", "Saída"])
+        comboTipo = ttk.Combobox(top, values=["Entrada", "Saída"], state="readonly", font=("Helvetica", 11))
         comboTipo.grid(row=1, column=1, padx=5, pady=5)
 
-        Label(top, text="Valor:").grid(row=2, column=0, padx=5, pady=5)
-        entryValor = Entry(top)
+        entryValor = ttk.Entry(top, font=("Helvetica", 11))
         entryValor.grid(row=2, column=1, padx=5, pady=5)
 
-        Label(top, text="Observação:").grid(row=3, column=0, padx=5, pady=5)
-        entryObs = Entry(top)
+        entryObs = ttk.Entry(top, font=("Helvetica", 11))
         entryObs.grid(row=3, column=1, padx=5, pady=5)
-        Button(top, text="Salvar", command=salvar).grid(row=4, column=0, columnspan=2, pady=10)
+
+        ttk.Button(top, text="Salvar", style="BotaoAdicionar.TButton", command=salvar).grid(row=4, column=0, columnspan=2, pady=10)
 
     def editarLancamento(tree):
         selected = tree.focus()
@@ -549,26 +562,43 @@ def janelaValor():
 
         top = Toplevel()
         top.title("Editar Lançamento")
-        Label(top, text="Data:").grid(row=0, column=0, padx=5, pady=5)
-        entryData = Entry(top)
+        top.configure(bg=co0)
+        top.resizable(width=FALSE, height=FALSE)
+        style = ttk.Style(top)
+        style.theme_use("clam")
+        style.configure("BotaoEditar.TButton",
+                        font=("Helvetica", 11, "bold"),
+                        foreground="white",
+                        background="#2196F3",
+                        borderwidth=0,
+                        focusthickness=3,
+                        focuscolor="none",
+                        relief="flat",
+                        padding=6)
+        style.map("BotaoEditar.TButton",
+                foreground=[("active", "white")],
+                background=[("active", "#1976D2")])
+
+        for i, texto in enumerate(["Data:", "Tipo:", "Valor:", "Observação:"]):
+            ttk.Label(top, text=texto, background=co0, foreground="white", font=("Helvetica", 11)).grid(row=i, column=0, padx=5, pady=5, sticky="w")
+
+        entryData = ttk.Entry(top, font=("Helvetica", 11))
         entryData.insert(0, values[0])
         entryData.grid(row=0, column=1, padx=5, pady=5)
 
-        Label(top, text="Tipo:").grid(row=1, column=0, padx=5, pady=5)
-        comboTipo = ttk.Combobox(top, values=["Entrada", "Saída"])
+        comboTipo = ttk.Combobox(top, values=["Entrada", "Saída"], state="readonly", font=("Helvetica", 11))
         comboTipo.set(values[1])
         comboTipo.grid(row=1, column=1, padx=5, pady=5)
 
-        Label(top, text="Valor:").grid(row=2, column=0, padx=5, pady=5)
-        entryValor = Entry(top)
+        entryValor = ttk.Entry(top, font=("Helvetica", 11))
         entryValor.insert(0, values[2])
         entryValor.grid(row=2, column=1, padx=5, pady=5)
 
-        Label(top, text="Observação:").grid(row=3, column=0, padx=5, pady=5)
-        entryObs = Entry(top)
+        entryObs = ttk.Entry(top, font=("Helvetica", 11))
         entryObs.insert(0, values[3])
         entryObs.grid(row=3, column=1, padx=5, pady=5)
-        Button(top, text="Salvar", command=salvar).grid(row=4, column=0, columnspan=2, pady=10)
+
+        ttk.Button(top, text="Salvar", style="BotaoEditar.TButton", command=salvar).grid(row=4, column=0, columnspan=2, pady=10)
 
     def deletarLancamento(tree):
         selected = tree.focus()
