@@ -40,6 +40,18 @@ def janelaPrincipal():
 
     style = ttk.Style(janela)
     style.theme_use("clam")
+    
+    style.configure('Modern.TButton', 
+                   font=('Verdana', 7, 'bold'),
+                   foreground=co1,
+                   background=co6,
+                   borderwidth=2,
+                   relief='raised',
+                   padding=8)
+    
+    style.map('Modern.TButton',
+              foreground=[('active', co0)],
+              background=[('active', co5)])
 
     # DIV CIMA
     divCima = Frame(janela, width=900, height=90, background=co6, relief="flat")
@@ -57,13 +69,27 @@ def janelaPrincipal():
     topoBotoes = Frame(divCima, background=co6)
     topoBotoes.place(x=550, y=25)
 
-    ttk.Button(topoBotoes, text="GESTÃO", command=janelaGestor).grid(row=0, column=0, padx=5)
-    ttk.Button(topoBotoes, text="PESSOAS", command=janelaPessoas).grid(row=0, column=1, padx=5)
-    ttk.Button(topoBotoes, text="VALORES", command=janelaValor).grid(row=0, column=2, padx=5)
+    btn_gestao = ttk.Button(topoBotoes, 
+                           text="GESTÃO", 
+                           command=janelaGestor,
+                           style='Modern.TButton')
+    btn_gestao.grid(row=0, column=0, padx=8, pady=5)
+
+    btn_pessoas = ttk.Button(topoBotoes, 
+                            text="PESSOAS", 
+                            command=janelaPessoas,
+                            style='Modern.TButton')
+    btn_pessoas.grid(row=0, column=1, padx=8, pady=5)
+
+    btn_valores = ttk.Button(topoBotoes, 
+                            text="VALORES", 
+                            command=janelaValor,
+                            style='Modern.TButton')
+    btn_valores.grid(row=0, column=2, padx=8, pady=5)
 
     # DIV MEIO
     divMeio = Frame(janela, width=900, height=460, background=co8, relief="flat")
-    divMeio.grid(row=1, column=0, padx=10, sticky="nsew")
+    divMeio.grid(row=1, column=0, sticky="nsew")
 
     tituloAgenda = Label(divMeio, text="Calendário e agenda", font=("Verdana", 25, "bold"),
                          background=co8, foreground=co1)
@@ -97,7 +123,6 @@ def janelaPrincipal():
     tabela.column("valor", width=75, anchor="center")
 
     tabela.bind("<Button-1>", lambda e: "break" if tabela.identify_region(e.x, e.y) == "separator" else None)
-    tabela.grid_propagate(False)
     tabela.pack()
 
     tarefaJanelaPrincipal(tabela, calendario, con, co9)
@@ -121,7 +146,7 @@ def janelaPrincipal():
 
     # DIV BAIXO
     divBaixo = Frame(janela, width=900, height=50, background=co6, relief="flat")
-    divBaixo.grid(row=2, column=0, pady=0, padx=10, sticky="nsew")
+    divBaixo.grid(row=2, column=0, sticky="nsew")
 
     copyright_label = Label(divBaixo, text="© 2025 Frank Kiess - Todos os direitos reservados",
                             bg=co6, fg=co1, font=("Verdana", 10))
@@ -131,6 +156,23 @@ def janelaPrincipal():
 
 
 def janelaPessoas():
+
+    def sort_treeview(tv, col, reverse):
+        items = [(tv.set(k, col), k) for k in tv.get_children('')]
+        
+        if col == "id":
+            items.sort(key=lambda t: int(t[0]), reverse=reverse)
+        else:
+            items.sort(reverse=reverse)
+            
+        for index, (val, k) in enumerate(items):
+            tv.move(k, '', index)
+            
+        tv.heading(col, command=lambda: sort_treeview(tv, col, not reverse))
+        
+        for c in tv["columns"]:
+            tv.heading(c, text=c.upper())
+        tv.heading(col, text=col.upper() + (" ↓" if reverse else " ↑"))
 
     def formatarCelular(event):
         widget = event.widget
@@ -321,14 +363,28 @@ def janelaPessoas():
     frameTabela.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
 
     colunas = ["id", "nome", "contato", "documento", "tipo"]
+    largura_col = [25, 160, 75, 100, 60]
+
     tabela = ttk.Treeview(frameTabela, columns=colunas, show="headings")
     tabela.grid(row=0, column=0, sticky="nsew")
-    for col in colunas:
-        tabela.heading(col, text=col.upper())
-        tabela.column(col, anchor="center", width=100)
+
+    for col, largura in zip(colunas, largura_col):
+        tabela.heading(col, text=col.upper(), 
+                      command=lambda c=col: sort_treeview(tabela, c, False))
+        tabela.column(col, width=largura, anchor="center")
 
     frameTabela.grid_rowconfigure(0, weight=1)
     frameTabela.grid_columnconfigure(0, weight=1)
+
+    tabela.bind("<Button-1>", lambda e: "break" if tabela.identify_region(e.x, e.y) == "separator" else None)
+
+    scroll_y = ttk.Scrollbar(frameTabela, orient="vertical", command=tabela.yview)
+    scroll_y.grid(row=0, column=1, sticky="ns")
+    tabela.configure(yscrollcommand=scroll_y.set)
+
+    scroll_x = ttk.Scrollbar(frameTabela, orient="horizontal", command=tabela.xview)
+    scroll_x.grid(row=1, column=0, sticky="ew")
+    tabela.configure(xscrollcommand=scroll_x.set)
 
     # BOTÕES
     frameBotoes = Frame(divMeio, background=co8)
@@ -1311,45 +1367,88 @@ def janelaGestor():
 
     # Tabelas
     colunaServico = ["id", "nome", "objetivo", "valor", "data_inicio", "data_fim"]
-    tabelaAtivos = ttk.Treeview(frameAtivos, columns=colunaServico, show="headings")
-    tabelaAtivos.pack(fill=BOTH, expand=True, padx=10, pady=10)
-    tabelaAtivos.bind("<Double-1>", lambda event: abrirDetalhesServico(event, tabelaAtivos))
+    largura_colunas_ativos = [25, 160, 160, 75, 100, 100]
 
-    for col in colunaServico:
-        tabelaAtivos.heading(col, text=col.upper())
-    largura_colunas_ativos = [25, 160, 160, 75, 40, 40]
+    tableContainer = Frame(frameAtivos)
+    tableContainer.pack(fill=BOTH, expand=True, padx=10, pady=10)
+
+    tabelaAtivos = ttk.Treeview(tableContainer, columns=colunaServico, show="headings")
+    tabelaAtivos.grid(row=0, column=0, sticky="nsew")
+
     for col, largura in zip(colunaServico, largura_colunas_ativos):
+        tabelaAtivos.heading(col, text=col.upper())
         tabelaAtivos.column(col, width=largura, anchor="center")
+
+    scroll_y = ttk.Scrollbar(tableContainer, orient="vertical", command=tabelaAtivos.yview)
+    scroll_y.grid(row=0, column=1, sticky="ns")
+
+    scroll_x = ttk.Scrollbar(tableContainer, orient="horizontal", command=tabelaAtivos.xview)
+    scroll_x.grid(row=1, column=0, sticky="ew")
+
+    tabelaAtivos.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
+
+    tableContainer.grid_rowconfigure(0, weight=1)
+    tableContainer.grid_columnconfigure(0, weight=1)
+
+    tabelaAtivos.bind("<Double-1>", lambda event: abrirDetalhesServico(event, tabelaAtivos))
 
     Button(frameAtivos, text="Adicionar Serviço", font=("Verdana", 10),
            bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarServico).pack(pady=10)
 
 
+    tableContainerFinalizados = Frame(frameFinalizados)
+    tableContainerFinalizados.pack(fill=BOTH, expand=True, padx=10, pady=10)
 
-    tabelaFinalizados = ttk.Treeview(frameFinalizados, columns=colunaServico, show="headings")
-    tabelaFinalizados.pack(fill=BOTH, expand=True, padx=10, pady=10)
+    tabelaFinalizados = ttk.Treeview(tableContainerFinalizados, columns=colunaServico, show="headings")
+    tabelaFinalizados.grid(row=0, column=0, sticky="nsew")
 
     for col in colunaServico:
         tabelaFinalizados.heading(col, text=col.upper())
+
     largura_colunas_finalizados = [25, 160, 160, 75, 40, 40]
     for col, largura in zip(colunaServico, largura_colunas_finalizados):
         tabelaFinalizados.column(col, width=largura, anchor="center")
 
-    tabelaProdutos = ttk.Treeview(frameProdutos, columns=["id", "nome"], show="headings")
-    tabelaProdutos.pack(fill=BOTH, expand=True, padx=10, pady=(10, 5))
+    scroll_y_finalizados = ttk.Scrollbar(tableContainerFinalizados, orient="vertical", command=tabelaFinalizados.yview)
+    scroll_y_finalizados.grid(row=0, column=1, sticky="ns")
+
+    scroll_x_finalizados = ttk.Scrollbar(tableContainerFinalizados, orient="horizontal", command=tabelaFinalizados.xview)
+    scroll_x_finalizados.grid(row=1, column=0, sticky="ew")
+
+    tabelaFinalizados.configure(yscrollcommand=scroll_y_finalizados.set, xscrollcommand=scroll_x_finalizados.set)
+    tableContainerFinalizados.grid_rowconfigure(0, weight=1)
+    tableContainerFinalizados.grid_columnconfigure(0, weight=1)
+
+    tableContainerProdutos = Frame(frameProdutos)
+    tableContainerProdutos.pack(fill=BOTH, expand=True, padx=10, pady=(10, 5))
+
+    tabelaProdutos = ttk.Treeview(tableContainerProdutos, columns=["id", "nome"], show="headings")
+    tabelaProdutos.grid(row=0, column=0, sticky="nsew")
 
     colunaProdutos = ["id", "nome"]
     for col in colunaProdutos:
         tabelaProdutos.heading(col, text=col.upper())
+
     largura_colunas_produtos = [25, 320]
     for col, largura in zip(colunaProdutos, largura_colunas_produtos):
         tabelaProdutos.column(col, width=largura, anchor="center")
 
-    Button(frameProdutos, text="Adicionar Produto", font=("Verdana", 10),
-           bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarProduto).pack(pady=10)
+    scroll_y_produtos = ttk.Scrollbar(tableContainerProdutos, orient="vertical", command=tabelaProdutos.yview)
+    scroll_y_produtos.grid(row=0, column=1, sticky="ns")
 
-    tabelaEstoque = ttk.Treeview(frameEstoque, columns=["id", "produto", "material/cor", "quantidade"], show="headings")
-    tabelaEstoque.pack(fill=BOTH, expand=True, padx=10, pady=10)
+    tabelaProdutos.configure(yscrollcommand=scroll_y_produtos.set)
+    tableContainerProdutos.grid_rowconfigure(0, weight=1)
+    tableContainerProdutos.grid_columnconfigure(0, weight=1)
+
+    Button(frameProdutos, text="Adicionar Produto", font=("Verdana", 10),
+        bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarProduto).pack(pady=10)
+
+
+    tableContainerEstoque = Frame(frameEstoque)
+    tableContainerEstoque.pack(fill=BOTH, expand=True, padx=10, pady=10)
+
+    tabelaEstoque = ttk.Treeview(tableContainerEstoque, columns=["id", "produto", "material/cor", "quantidade"], show="headings")
+    tabelaEstoque.grid(row=0, column=0, sticky="nsew")
     tabelaEstoque.bind("<Double-1>", lambda event: abrirDetalhesEstoque(event, tabelaEstoque))
 
     colunaEstoque = ["id", "produto", "material/cor", "quantidade"]
@@ -1360,23 +1459,47 @@ def janelaGestor():
     for col, largura in zip(colunaEstoque, largura_colunas_estoque):
         tabelaEstoque.column(col, width=largura, anchor="center")
 
-    Button(frameEstoque, text="Adicionar Estoque", font=("Verdana", 10),
-           bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarEstoque).pack(pady=10)
+    scroll_y_estoque = ttk.Scrollbar(tableContainerEstoque, orient="vertical", command=tabelaEstoque.yview)
+    scroll_y_estoque.grid(row=0, column=1, sticky="ns")
 
-    tabelaCompras = ttk.Treeview(frameCompras, columns=["id", "valor", "produtos", "data", "idPessoa", "nome", "tipo"], show="headings")
-    tabelaCompras.pack(fill=BOTH, expand=True, padx=10, pady=(10, 5))
+    scroll_x_estoque = ttk.Scrollbar(tableContainerEstoque, orient="horizontal", command=tabelaEstoque.xview)
+    scroll_x_estoque.grid(row=1, column=0, sticky="ew")
+
+    tabelaEstoque.configure(yscrollcommand=scroll_y_estoque.set, xscrollcommand=scroll_x_estoque.set)
+    tableContainerEstoque.grid_rowconfigure(0, weight=1)
+    tableContainerEstoque.grid_columnconfigure(0, weight=1)
+
+    Button(frameEstoque, text="Adicionar Estoque", font=("Verdana", 10),
+        bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarEstoque).pack(pady=10)
+    
+
+    tableContainerCompras = Frame(frameCompras)
+    tableContainerCompras.pack(fill=BOTH, expand=True, padx=10, pady=(10, 5))
+
+    tabelaCompras = ttk.Treeview(tableContainerCompras, columns=["id", "valor", "produtos", "data", "idPessoa", "nome", "tipo"], show="headings")
+    tabelaCompras.grid(row=0, column=0, sticky="nsew")
     tabelaCompras.bind("<Double-1>", lambda event: abrirDetalhesCompra(event, tabelaCompras))
 
     colunasCompras = ["id", "valor", "produtos", "data", "idPessoa", "nome", "tipo"]
     for col in colunasCompras:
         tabelaCompras.heading(col, text=col.upper())
-    
+
     largura_colunas_compras = [25, 75, 120, 60, 25, 80, 30]
     for col, largura in zip(colunasCompras, largura_colunas_compras):
         tabelaCompras.column(col, width=largura, anchor="center")
 
+    scroll_y_compras = ttk.Scrollbar(tableContainerCompras, orient="vertical", command=tabelaCompras.yview)
+    scroll_y_compras.grid(row=0, column=1, sticky="ns")
+
+    scroll_x_compras = ttk.Scrollbar(tableContainerCompras, orient="horizontal", command=tabelaCompras.xview)
+    scroll_x_compras.grid(row=1, column=0, sticky="ew")
+
+    tabelaCompras.configure(yscrollcommand=scroll_y_compras.set, xscrollcommand=scroll_x_compras.set)
+    tableContainerCompras.grid_rowconfigure(0, weight=1)
+    tableContainerCompras.grid_columnconfigure(0, weight=1)
+
     Button(frameCompras, text="Adicionar Compra", font=("Verdana", 10),
-           bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarCompra).pack(pady=10)
+        bg="#4CAF50", fg="white", padx=10, command=janelaAdicionarCompra).pack(pady=10)
 
     # DIV BAIXO
     divBaixo = Frame(janelaGestao, height=40, background=co6)
