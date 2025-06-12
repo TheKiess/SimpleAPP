@@ -1273,16 +1273,39 @@ def janelaGestor():
 
         janela = Toplevel()
         janela.title("Detalhes da Compra")
-        janela.geometry("500x300")
+        janela.geometry("500x400")
         janela.configure(background=co0)
 
-        Label(janela, text=f"ID: {id_venda}", font=("Verdana", 10)).pack(pady=5)
-        Label(janela, text=f"Valor Total: R$ {float(valor_total):.2f}", font=("Verdana", 10)).pack(pady=5)
-        Label(janela, text=f"Produtos: {produtos}", font=("Verdana", 10), wraplength=450, justify="left").pack(pady=5)
-        Label(janela, text=f"Data: {data}", font=("Verdana", 10)).pack(pady=5)
-        Label(janela, text=f"Pessoa: {nome_pessoa} ({tipo_pessoa})", font=("Verdana", 10)).pack(pady=5)
+        Label(janela, text=f"ID: {id_venda}", font=("Verdana", 10), bg=co0).pack(pady=5)
 
+        Label(janela, text="Valor Total (R$):", font=("Verdana", 10), bg=co0).pack()
+        entry_valor = Entry(janela, font=("Verdana", 10))
+        entry_valor.insert(0, str(valor_total))
+        entry_valor.pack(pady=5)
 
+        Label(janela, text="Produtos:", font=("Verdana", 10), bg=co0).pack()
+        entry_produtos = Text(janela, height=6, width=58, font=("Verdana", 10))
+        entry_produtos.insert("1.0", produtos)
+        entry_produtos.pack(pady=5)
+
+        Label(janela, text=f"Data: {data}", font=("Verdana", 10), bg=co0).pack(pady=5)
+        Label(janela, text=f"Pessoa: {nome_pessoa} ({tipo_pessoa})", font=("Verdana", 10), bg=co0).pack(pady=5)
+
+        def salvarAlteracoes():
+            try:
+                novo_valor = float(entry_valor.get())
+                novos_produtos = entry_produtos.get("1.0", "end").strip()
+
+                sucesso = atualizarCompra(id_venda, novo_valor, novos_produtos, data, id_pessoa)
+                if sucesso:
+                    messagebox.showinfo("Sucesso", "Compra atualizada com sucesso!")
+                    janela.destroy()
+                else:
+                    messagebox.showerror("Erro", "Falha ao atualizar a compra.")
+            except Exception as e:
+                messagebox.showerror("Erro", f"Erro ao salvar: {e}")
+
+        Button(janela, text="Salvar Alterações", bg="#5cb85c", fg="white", font=("Verdana", 10), command=salvarAlteracoes).pack(pady=10)
 
     def abrirDetalhesEstoque(event, tabela):
         item_selecionado = tabela.selection()

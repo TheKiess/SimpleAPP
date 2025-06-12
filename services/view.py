@@ -266,7 +266,20 @@ def deletarVenda(idVenda):
         cur = con.cursor()
         cur.execute("DELETE FROM Venda WHERE id = ?", (idVenda,))
 
-
+def atualizarCompra(id_venda, novo_valor, novos_produtos, nova_data, novo_id_pessoa):
+    try:
+        with con:
+            cur = con.cursor()
+            cur.execute("""
+                UPDATE Venda
+                SET valor = ?, produtos = ?, data = ?, idPessoa = ?
+                WHERE id = ?
+            """, (novo_valor, novos_produtos, nova_data, novo_id_pessoa, id_venda))
+        return True
+    except Exception as e:
+        print(f"Erro ao atualizar compra: {e}")
+        return False
+    
 ################ TABELA HISTORICO PAGAMENTO  ################
 
 def registrarPagamentoParcial(id_servico, valor_parcial):
