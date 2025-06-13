@@ -260,7 +260,22 @@ def listarVendas():
             JOIN Pessoa p ON v.idPessoa = p.id
         """)
         return cur.fetchall()
-
+    
+def listarProdutosDaVenda(id_venda):
+    conexao = sqlite3.connect("dados.db")
+    cursor = conexao.cursor()
+    
+    cursor.execute("""
+        SELECT Produto.nome, MovimentacaoCompra.quantidade
+        FROM MovimentacaoCompra
+        JOIN Produto ON MovimentacaoCompra.idProduto = Produto.id
+        WHERE MovimentacaoCompra.idVenda = ?
+    """, (id_venda,))
+    
+    dados = cursor.fetchall()
+    conexao.close()
+    return dados
+    
 def deletarVenda(idVenda):
     with con:
         cur = con.cursor()

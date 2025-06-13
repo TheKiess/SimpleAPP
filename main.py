@@ -1,5 +1,5 @@
 from tkinter import *
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, simpledialog
 from tkcalendar import Calendar
 from PIL import Image, ImageTk
 from collections import defaultdict
@@ -1269,43 +1269,191 @@ def janelaGestor():
             return
 
         valores = tabela.item(item_selecionado)["values"]
-        id_venda, valor_total, produtos, data, id_pessoa, nome_pessoa, tipo_pessoa = valores
+        id_venda, valor_total, _, data, id_pessoa, nome_pessoa, tipo_pessoa = valores
+
+        produtos_existentes = [produto[1] for produto in listarProdutos()]
 
         janela = Toplevel()
         janela.title("Detalhes da Compra")
-        janela.geometry("500x400")
+        janela.geometry("600x400")
         janela.configure(background=co0)
 
-        Label(janela, text=f"ID: {id_venda}", font=("Verdana", 10), bg=co0).pack(pady=5)
+        Label(janela, text=f"ID: {id_venda}", font=("Verdana", 10), bg=co0, fg=co1).pack(pady=5)
 
-        Label(janela, text="Valor Total (R$):", font=("Verdana", 10), bg=co0).pack()
-        entry_valor = Entry(janela, font=("Verdana", 10))
+        Label(janela, text="Valor Total (R$):", font=("Verdana", 10), bg=co0, fg=co1).pack()
+        entry_valor = Entry(janela, font=("Verdana", 10), bg=co1, fg=co0, insertbackground=co1)
         entry_valor.insert(0, str(valor_total))
         entry_valor.pack(pady=5)
 
-        Label(janela, text="Produtos:", font=("Verdana", 10), bg=co0).pack()
-        entry_produtos = Text(janela, height=6, width=58, font=("Verdana", 10))
-        entry_produtos.insert("1.0", produtos)
-        entry_produtos.pack(pady=5)
+        Label(janela, text="Produtos:", font=("Verdana", 10), bg=co0, fg=co1).pack()
 
-        Label(janela, text=f"Data: {data}", font=("Verdana", 10), bg=co0).pack(pady=5)
-        Label(janela, text=f"Pessoa: {nome_pessoa} ({tipo_pessoa})", font=("Verdana", 10), bg=co0).pack(pady=5)
+        lista_produtos = listarProdutosDaVenda(id_venda)
+
+        tree_produtos = ttk.Treeview(janela, columns=("produto", "quantidade"), show="headings", height=6)
+        tree_produtos.heading("produto", text="Produto")
+        tree_produtos.heading("quantidade", text="Quantidade")
+        tree_produtos.column("produto", width=300)
+        tree_produtos.column("quantidade", width=100)
+
+        for nome_produto, qtd in lista_produtos:
+            tree_produtos.insert("", "end", values=(nome_produto, qtd))
+
+        tree_produtos.pack(pady=5)
+
+        def editarCelula(event):
+            item = tree_produtos.identify_row(event.y)
+            coluna = tree_produtos.identify_column(event.x)
+            if not item:
+                return
+
+            valores_linha = tree_produtos.item(item, "values")
+            idx_coluna = int(coluna.replace("#", "")) - 1
+            valorAtual = valores_linha[idx_coluna]
+
+            if idx_coluna == 0:
+                nova_janela = Toplevel(janela)
+                nova_janela.title("Editar Produto")
+                nova_janela.configure(background=co0)
+                nova_janela.resizable(width=FALSE, height=FALSE)
+
+                Label(nova_janela, text="Selecione o novo produto:", font=("Verdana", 10), bg=co0, fg=co1).pack(pady=5)
+
+                combo = ttk.Combobox(nova_janela, values=produtos_existentes, font=("Verdana", 10))
+                combo.set(valorAtual)
+                combo.pack(pady=5)
+
+                def salvar_produto():
+                    novo_produto = combo.get()
+                    if novo_produto not in produtos_existentes:
+                        messagebox.showerror("Erro", "Produto não encontrado na base de dados.", parent=nova_janela)
+                        return
+                    novos_valores = list(valores_linha)
+                    novos_valores[idx_coluna] = novo_produto
+                    tree_produtos.item(item, values=novos_valores)
+                    nova_janela.destroy()
+
+                Button(nova_janela, text="Salvar", bg=co10, fg="white", font=("Verdana", 10), command=salvar_produto).pack(pady=10)
+
+            elif idx_coluna == 1:
+                nova_janela = Toplevel(janela)
+                nova_janela.title("Editar Quantidade")
+                nova_janela.configure(background=co0)
+
+                Label(nova_janela, text="Nova quantidade:", font=("Verdana", 10), bg=co0, fg=co1).pack(pady=5)
+
+                entry_quantidade = Entry(nova_janela, font=("Verdana", 10), bg=co0, fg=co1, insertbackground=co1)
+                entry_quantidade.insert(0, str(valorAtual))
+                entry_quantidade.pack(pady=5)
+
+                def salvar_quantidade():
+                    try:
+                        nova_quantidade = int(entry_quantidade.get())
+                        novos_valores = list(valores_linha)
+                        novos_valores[idx_coluna] = nova_quantidade
+                        tree_produtos.item(item, values=novos_valores)
+                        nova_janela.destroy()
+                    except:
+                        messagebox.showerror("Erro", "A quantidade deve ser um número inteiro.", parent=nova_janela)
+
+                Button(nova_janela, text="Salvar", bg=co10, fg="white", font=("Verdana", 10), command=salvar_quantidade).pack(pady=10)
+
+        tree_produtos.bind("<Double-1>", editarCelula)
+
+        def adicionarProduto():
+            nova_janela = Toplevel(janela)
+            nova_janela.title("Adicionar Produto")
+            nova_janela.configure(background=co0)
+
+            Label(nova_janela, text="Produto:", font=("Verdana", 10), bg=co0, fg=co1).pack(pady=5)
+            entry_produto = Entry(nova_janela, font=("Verdana", 10), bg=co0, fg=co1, insertbackground=co1)
+            entry_produto.pack(pady=5)
+
+            Label(nova_janela, text="Quantidade:", font=("Verdana", 10), bg=co0, fg=co1).pack(pady=5)
+            entry_quantidade = Entry(nova_janela, font=("Verdana", 10), bg=co0, fg=co1, insertbackground=co1)
+            entry_quantidade.pack(pady=5)
+
+            def adicionar():
+                produto = entry_produto.get()
+                try:
+                    quantidade = int(entry_quantidade.get())
+                except:
+                    messagebox.showerror("Erro", "Quantidade inválida.", parent=nova_janela)
+                    return
+
+                if produto not in produtos_existentes:
+                    messagebox.showerror("Erro", "Produto não encontrado na base de dados.", parent=nova_janela)
+                    return
+
+                tree_produtos.insert("", "end", values=(produto, quantidade))
+                nova_janela.destroy()
+
+            Button(nova_janela, text="Adicionar", bg="#0275d8", fg="white", font=("Verdana", 10), command=adicionar).pack(pady=10)
+
+        def excluirProduto():
+            item = tree_produtos.selection()
+            if item:
+                tree_produtos.delete(item)
+            else:
+                messagebox.showwarning("Atenção", "Selecione um produto para excluir.", parent=janela)
+
+        frame_botoes = Frame(janela, bg=co0)
+        frame_botoes.pack(pady=10)
+
+        Label(janela, text=f"Data: {data}", font=("Verdana", 10), bg=co0, fg=co1).pack(pady=5)
+        Label(janela, text=f"Pessoa: {nome_pessoa} ({tipo_pessoa})", font=("Verdana", 10), bg=co0, fg=co1).pack(pady=5)
+
+        Button(frame_botoes, text="Adicionar Produto", bg=co7, fg="white", font=("Verdana", 10), command=adicionarProduto).pack(side="left", padx=5)
+        Button(frame_botoes, text="Excluir Produto", bg=co9, fg="white", font=("Verdana", 10), command=excluirProduto).pack(side="left", padx=5)
 
         def salvarAlteracoes():
             try:
                 novo_valor = float(entry_valor.get())
-                novos_produtos = entry_produtos.get("1.0", "end").strip()
+                conn = sqlite3.connect("dados.db")
+                cursor = conn.cursor()
 
-                sucesso = atualizarCompra(id_venda, novo_valor, novos_produtos, data, id_pessoa)
-                if sucesso:
-                    messagebox.showinfo("Sucesso", "Compra atualizada com sucesso!")
-                    janela.destroy()
-                else:
-                    messagebox.showerror("Erro", "Falha ao atualizar a compra.")
+                cursor.execute("""
+                    UPDATE Venda
+                    SET valor = ?
+                    WHERE id = ?
+                """, (novo_valor, id_venda))
+
+                cursor.execute("DELETE FROM MovimentacaoCompra WHERE idVenda = ?", (id_venda,))
+
+                for linha in tree_produtos.get_children():
+                    nome_produto, qtd = tree_produtos.item(linha)["values"]
+                    qtd = int(qtd)
+
+                    cursor.execute("SELECT id FROM Produto WHERE nome = ?", (nome_produto,))
+                    resultado = cursor.fetchone()
+                    if resultado:
+                        id_produto = resultado[0]
+                        cursor.execute("""
+                            INSERT INTO MovimentacaoCompra (idVenda, idProduto, quantidade)
+                            VALUES (?, ?, ?)
+                        """, (id_venda, id_produto, qtd))
+
+                        estoque = buscarEstoquePorProduto(id_produto)
+                        if estoque:
+                            idEstoque, _ = estoque
+                            cursor.execute("""
+                                SELECT SUM(quantidade) FROM MovimentacaoCompra WHERE idProduto = ?
+                            """, (id_produto,))
+                            total_entrada = cursor.fetchone()[0] or 0
+
+                            cursor.execute("""
+                                UPDATE Estoque SET quantidade = ? WHERE id = ?
+                            """, (total_entrada, idEstoque))
+
+                conn.commit()
+                conn.close()
+
+                messagebox.showinfo("Sucesso", "Compra atualizada com sucesso!", parent=janela)
+                janela.destroy()
+
             except Exception as e:
-                messagebox.showerror("Erro", f"Erro ao salvar: {e}")
+                messagebox.showerror("Erro", f"Erro ao salvar: {e}", parent=janela)
 
-        Button(janela, text="Salvar Alterações", bg="#5cb85c", fg="white", font=("Verdana", 10), command=salvarAlteracoes).pack(pady=10)
+        Button(frame_botoes, text="Salvar Alterações", bg=co10, fg="white", font=("Verdana", 10), command=salvarAlteracoes).pack(side="left", padx=5)
 
     def abrirDetalhesEstoque(event, tabela):
         item_selecionado = tabela.selection()
